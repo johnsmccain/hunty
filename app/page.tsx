@@ -58,9 +58,13 @@ export default function GameArcade() {
     setBalance("")
   }
 
+  const handleCreateGame = () => {
+    window.location.href = "/hunty"
+  }
+
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-[#f9f9ff] to-[#fce4ec] p-4 ${isConnected ? "border-4 border-blue-400" : ""}`}
+      className={`min-h-screen bg-gradient-to-br from-[#f9f9ff] to-[#fce4ec] ${isConnected ? "border-4 border-blue-400" : ""}`}
     >
       {/* Header */}
       <header className="flex justify-between items-center mb-8">
@@ -92,19 +96,19 @@ export default function GameArcade() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-[1600px] mx-auto bg-white rounded-4xl pb-12 relative pt-24">
         {/* Logo and Title */}
         <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-[#0C0C4F] shadow-lg">
-              {/* logo */}
-          <Image src="/icons/logo.png" alt="Logo" width={96} height={96} />
+          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-[#0C0C4F] shadow-lg absolute left-1/2 top-1 -translate-x-1/2 -translate-y-1/2">
+              {/* logo */ }
+               <Image src="/icons/logo.png" alt="Logo" width={96} height={96} />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-8">The Ultimate Web3 Game Arcade</h1>
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-          <Button className="bg-[#0C0C4F] hover:bg-slate-700 text-white px-8 py-3 rounded-lg text-lg cursor-pointer">
+          <Button className="bg-[#0C0C4F] hover:bg-slate-700 text-white px-8 py-3 rounded-lg text-lg cursor-pointer" onClick={handleCreateGame}>
             Create Game
           </Button>
           <Button className="bg-[#E87785] hover:bg-[#d4606f] text-white px-8 py-3 rounded-lg text-lg cursor-pointer">Play Game</Button>
@@ -126,7 +130,7 @@ export default function GameArcade() {
         </div>
 
         {/* Game Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-6 max-w-7xl mx-auto">
           {/* Crossbites Game */}
 
           <Card>
