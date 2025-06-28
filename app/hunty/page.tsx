@@ -1,11 +1,12 @@
 "use client"
 
-import { dynapuff } from "@/lib/font"
-
 import { useState } from "react"
+import Image from "next/image"
+
+import { dynapuff } from "@/lib/font"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, ArrowRight, Plus, Share, QrCode, Download, Printer } from "lucide-react"
+import { ArrowLeft, ArrowRight, Plus, QrCode, Download, Printer} from "lucide-react"
 import { Header } from "@/components/Header"
 import { CreateGameTabs } from "@/components/CreateGameTabs"
 import { HuntForm } from "@/components/HuntForm"
@@ -15,7 +16,9 @@ import { GamePreview } from "@/components/GamePreview"
 import { PublishModal } from "@/components/PublishModal"
 import { GameCompleteModal } from "@/components/GameCompleteModal"
 import { PlayGame } from "@/components/PlayGame"
-import Image from "next/image"
+import Share from "@/components/icons/Share"
+import PlayCircle from "@/components/icons/PlayCircle"
+
 import ToggleButton from "@/components/ToggleButton"
 
 interface Hunt {
@@ -152,7 +155,7 @@ export default function CreateGame() {
                 <span>🔄</span> Replay
               </Button>
               <Button className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-full flex items-center gap-2">
-                <Share className="w-4 h-4" />
+                <Share />
                 Share Link
               </Button>
             </div>
@@ -257,12 +260,41 @@ export default function CreateGame() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Give It A Name</label>
-                    <Input value={gameName} onChange={(e) => setGameName(e.target.value)} />
+                    <Input 
+  value={gameName} 
+  placeholder="Hunty" 
+  onChange={(e) => setGameName(e.target.value)} 
+  className="w-[230px] [&::placeholder]:bg-gradient-to-r [&::placeholder]:from-[#3737A4] [&::placeholder]:to-[#0C0C4F] [&::placeholder]:bg-clip-text [&::placeholder]:text-transparent text-[16px]"
+/>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Set Timeframe</label>
-                    <div className="flex items-center gap-0.5"><Input placeholder="00"/><span className="text-2xl bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] font-medium bg-clip-text">:</span><Input placeholder="00"/></div>
+                    <div className="flex items-center gap-2">
+                      <div className="relative">
+                        <div className="p-0.5 bg-gradient-to-b from-[#2D4FEB] to-[#0C0C4F] rounded-lg">
+                          <Input 
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="00" 
+                            className="w-full text-center text-lg font-medium bg-white rounded-lg px-3 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 border-0"
+                          />
+                        </div>
+                      </div>
+                      <span className="text-2xl bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] font-medium bg-clip-text text-transparent">:</span>
+                      <div className="relative">
+                        <div className="p-0.5 bg-gradient-to-b from-[#2D4FEB] to-[#0C0C4F] rounded-lg">
+                          <Input 
+                            type="number"
+                            min="0"
+                            max="59"
+                            placeholder="00" 
+                            className="w-full text-center text-lg font-medium bg-white rounded-lg px-3 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 border-0"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -273,19 +305,19 @@ export default function CreateGame() {
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">End Date</label>
                     <div className="flex gap-[8px]">  
-                       <Input placeholder="dd/mm/yy"/>
-                       <Input  placeholder="00:00 AM"/></div>
+                       <Input placeholder="dd/mm/yy" className="h-11 w-[110px] text-center"/>
+                       <Input placeholder="00:00 AM" className="h-11 w-[110px] text-center"/></div>
                     </div>
 
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Share Link/Generate QR Code</label>
                     <div className="flex gap-2">
                       <Button className="bg-gradient-to-b from-[#3737A4] to-[#0C0C4F]  hover:bg-slate-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-                        <Share className="w-4 h-4" />
+                        <Share/>
                         Share Now
                       </Button>
-                      <Button size="icon" variant="outline" className="rounded-lg">
-                        <QrCode className="w-4 h-4" />
+                      <Button size="icon" variant="outline" className="rounded-lg border-1 border-transparent bg-white bg-clip-padding shadow-sm hover:bg-slate-50 [background:linear-gradient(white,white)_padding-box,linear-gradient(to_bottom,#3737A4,#0C0C4F)_border-box]">
+                        <QrCode className="w-4 h-4 text-[#0C0C4F]" />
                       </Button>
                     </div>
                   </div>
@@ -294,11 +326,11 @@ export default function CreateGame() {
                   <label className="block text-xl font-normal text-[#808080]">Save As Image</label>
                     <div className="flex gap-2">
                       <Button className="bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] hover:bg-slate-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-                        <Download className="w-4 h-4" />
+                        <Download className="w-4 h-4 " />
                         Download
                       </Button>
-                      <Button size="icon" variant="outline" className="rounded-lg">
-                        <Printer className="w-4 h-4" />
+                      <Button size="icon" variant="outline" className="rounded-lg border-1 border-transparent bg-white bg-clip-padding shadow-sm hover:bg-slate-50 [background:linear-gradient(white,white)_padding-box,linear-gradient(to_bottom,#3737A4,#0C0C4F)_border-box]">
+                        <Printer className="w-4 h-4 text-[#0C0C4F]" />
                       </Button>
                     </div>
                   </div>
@@ -312,7 +344,7 @@ export default function CreateGame() {
                       onClick={() => setShowPublishModal(true)}
                       className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 text-white text-xl px-6 py-3 rounded-lg flex items-center gap-2"
                     >
-                      <span>📤</span>
+                      <span><PlayCircle/></span>
                       Publish Game
                     </Button>
                   </div>
