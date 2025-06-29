@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import Coin from "./ui/coin"
+import Coin from "./icons/Coin"
 
 interface HeaderProps {
   isConnected: boolean
