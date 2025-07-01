@@ -1,15 +1,17 @@
 "use client"
 
 import type React from "react"
+import Image from "next/image"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { ArrowLeft} from "lucide-react"
 import { Header } from "@/components/Header"
 import Share from "./icons/Share"
-import Image from "next/image"
 import Replay from "./icons/Replay"
+// import { Card, CardDescription, CardTitle } from "@/components/ui/card"
+import { HuntCards } from "./HuntCards"
+
 
 interface Hunt {
   id: number
@@ -29,6 +31,7 @@ interface PlayGameProps {
 
 export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameCompleteModal }: PlayGameProps) {
   const [unlockCode, setUnlockCode] = useState("")
+  const [currentCardIndex, setCurrentCardIndex] = useState(0)
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff]">
@@ -72,55 +75,75 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
             </Button>
           </div>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-gradient-to-b from-blue-800 to-purple-800 rounded-2xl p-6 text-white">
-            <div className="text-right text-sm mb-4">1/10</div>
-            <h3 className="text-xl font-bold mb-2">{hunts[0]?.title || "What is the fastest bird?"}</h3>
-            <p className="text-sm opacity-90 mb-4">
-              {hunts[0]?.description ||
-                "The Description appears here. Viverra ipsum dolor sit amet, consectetur adipiscing elit."}
-            </p>
-            <div className="relative mb-4">
-              <Image
-                src="/placeholder.svg?height=200&width=300"
-                alt="Kingfisher bird"
-                width={300}
-                height={200}
-                className="rounded-lg w-full"
+        
+        {/* Updated layout for centered first card and right-positioned subsequent cards */}
+        <div className="relative flex justify-center mt-8 min-h-[500px] overflow-x-auto">
+          {/* Container for all cards */}
+          <div className="relative flex items-start justify-center w-full max-w-none px-8">
+            {/* Left side - Previous cards (optional) */}
+            {currentCardIndex > 0 && (
+              <div className="absolute left-0 top-0 flex flex-col gap-4 mr-8">
+                <div className="opacity-40 scale-60 transform origin-right">
+                  <HuntCards 
+                    hunts={[hunts[currentCardIndex - 1]]}
+                    isActive={false}
+                    preview={true}
+                    currentIndex={currentCardIndex}
+                    totalHunts={hunts.length}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {/* Center - Current active card */}
+            <div className="flex justify-center mx-auto z-10">
+              <HuntCards 
+                hunts={[hunts[currentCardIndex]]}
+                isActive={true}
+                onUnlock={() => {
+                  if (currentCardIndex < hunts.length - 1) {
+                    setCurrentCardIndex(prev => prev + 1);
+                  } else {
+                    onGameComplete();
+                  }
+                }}
+                currentIndex={currentCardIndex + 1}
+                totalHunts={hunts.length}
               />
             </div>
-            <Button className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-sm">
-              🎯 Hint To Unlock
-            </Button>
+            
+            {/* Right side - Next cards */}
+            {currentCardIndex < hunts.length - 1 && (
+              <div className="absolute right-0 top-0 flex flex-col gap-6 ml-8">
+                {hunts.slice(currentCardIndex + 1, currentCardIndex + 3).map((hunt, index) => (
+                  <div key={hunt.id} className="opacity-80 scale-90 transform origin-left hover:opacity-95 transition-all duration-300 border-2 border-blue-300/50 rounded-lg shadow-lg hover:border-blue-400 hover:shadow-xl">
+                    <HuntCards 
+                      hunts={[hunt]}
+                      isActive={false}
+                      preview={true}
+                      currentIndex={currentCardIndex + index + 2}
+                      totalHunts={hunts.length}
+                    />
+                  </div>
+                ))}
+                
+                {/* Show indicator if there are more cards */}
+                {currentCardIndex + 3 < hunts.length && (
+                  <div className="text-center text-slate-600 text-sm mt-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+                    +{hunts.length - currentCardIndex - 3} more cards
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          <div className="bg-gradient-to-b from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-            <div className="text-right text-sm mb-4">2/10</div>
-            <h3 className="text-xl font-bold mb-2">{hunts[1]?.title || "What is the biggest bird?"}</h3>
-            <p className="text-sm opacity-90 mb-4">{hunts[1]?.description || "Long legs, tiny brain"}</p>
-            <Button className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-full text-sm mb-4">
-              🎯 Hint To Unlock
-            </Button>
+          
+          {/* Debug info - remove this in production */}
+          <div className="absolute bottom-4 left-4 text-xs text-gray-500 bg-white p-2 rounded">
+            Current: {currentCardIndex + 1}/{hunts.length} | 
+            Next cards: {currentCardIndex < hunts.length - 1 ? 'Visible' : 'None'}
           </div>
         </div>
 
-        <div className="flex justify-center mt-8">
-          <div className="flex gap-4 max-w-md w-full">
-            <Input
-              placeholder="Enter code to unlock"
-              value={unlockCode}
-              onChange={(e) => setUnlockCode(e.target.value)}
-              className="flex-1 px-4 py-2 rounded-full"
-            />
-            <Button
-              onClick={onGameComplete}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-full"
-            >
-              →
-            </Button>
-          </div>
-        </div>
       </div>
 
       {gameCompleteModal}
