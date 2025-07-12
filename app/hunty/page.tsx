@@ -146,7 +146,7 @@ export default function CreateGame() {
           onDisconnect={() => {}}
         />
 
-        <div className="max-w-[1500px] px-14 pt-10 pb-12 bg-white mx-auto rounded-4xl relative">
+        <div className="max-w-[1600px] px-14 pt-10 pb-12 bg-white mx-auto rounded-4xl relative">
           <div className="flex items-center gap-4 mb-8">
             <Button
               variant="ghost"
