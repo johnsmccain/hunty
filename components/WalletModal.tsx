@@ -19,13 +19,7 @@ interface WalletModalProps {
   onConnect: (address: string) => void
 }
 
-const walletOptions: WalletOption[] = [
-  { id: "web-wallet", name: "Web Wallet", description: "(Powered by Argent)", icon: "📧" },
-  { id: "argent-x", name: "Argent X", icon: "🦊" },
-  { id: "argent-mobile", name: "Argent Mobile", icon: "📱" },
-  { id: "braavos", name: "Braavos", icon: "🛡️" },
-  { id: "okx-wallet", name: "OKX Wallet", icon: "⚫" },
-]
+const walletOptions: WalletOption[] = []
 
 export function WalletModal({ isOpen, onClose, onConnect }: WalletModalProps) {
   const [isConnecting, setIsConnecting] = useState(false)
@@ -71,19 +65,25 @@ export function WalletModal({ isOpen, onClose, onConnect }: WalletModalProps) {
 
         {!isConnecting ? (
           <div className="space-y-3">
-            {walletOptions.map((wallet) => (
-              <Button
-                key={wallet.id}
-                onClick={() => handleWalletSelect(wallet)}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-3 justify-start h-auto"
-              >
-                <span className="text-xl">{wallet.icon}</span>
-                <div className="text-left">
-                  <div className="font-medium">{wallet.name}</div>
-                  {wallet.description && <div className="text-sm opacity-80">{wallet.description}</div>}
-                </div>
-              </Button>
-            ))}
+            {walletOptions.length > 0 ? (
+              walletOptions.map((wallet) => (
+                <Button
+                  key={wallet.id}
+                  onClick={() => handleWalletSelect(wallet)}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white p-4 rounded-xl flex items-center gap-3 justify-start h-auto"
+                >
+                  <span className="text-xl">{wallet.icon}</span>
+                  <div className="text-left">
+                    <div className="font-medium">{wallet.name}</div>
+                    {wallet.description && <div className="text-sm opacity-80">{wallet.description}</div>}
+                  </div>
+                </Button>
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-600">
+                <p>No wallet options available.</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">

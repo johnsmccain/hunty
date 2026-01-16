@@ -22,13 +22,7 @@ interface WalletOption {
   description?: string
 }
 
-const walletOptions: WalletOption[] = [
-  { id: "web-wallet", name: "Web Wallet", description: "(Powered by Argent)", icon: "📧" },
-  { id: "argent-x", name: "Argent X", icon: "🦊" },
-  { id: "argent-mobile", name: "Argent Mobile", icon: "📱" },
-  { id: "braavos", name: "Braavos", icon: "🛡️" },
-  { id: "okx-wallet", name: "OKX Wallet", icon: "⚫" },
-]
+const walletOptions: WalletOption[] = []
 
 export default function GameArcade() {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
@@ -133,7 +127,7 @@ export default function GameArcade() {
                       <Image src="/static-images/image1.png" alt="bird" width={132} height={132} />
                     </div>
                     <div className="mt-2">
-                      <Button className="bg-gradient-to-b from-[#2F2FFF]  to-[#E87785] sh-6 text-[7.76px] p-[3px]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Hint To Unlock</span></Button>
+                      <Button className="bg-gradient-to-b from-[#2F2FFF]  to-[#E87785] sh-6 text-[7.76px] p-[3px]"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Hint To Unlock</span></Button>
                     </div>
                   </div>
                   <div className="flex gap-1 bg-white items-center align-center p-3 rounded-b-lg
@@ -149,7 +143,7 @@ export default function GameArcade() {
                       <CardTitle className="text-[13px] font-bold">What is the biggest bird?</CardTitle>
                       <CardDescription className="text-[8px] mt-2 text-white">long legs, tiny brain </CardDescription>
                       <div className="mt-2">
-                        <Button className="bg-gradient-to-b from-[#2F2FFF]  to-[#E87785] text-[8px]"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> <span className="text-[8px]">Hint To Unlock</span></Button>
+                        <Button className="bg-gradient-to-b from-[#2F2FFF]  to-[#E87785] text-[8px]"> <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> <span className="text-[8px]">Hint To Unlock</span></Button>
                       </div>
                       
                   </div>
@@ -185,21 +179,27 @@ export default function GameArcade() {
 
           {!isConnectingWallet ? (
             <div className="space-y-3">
-              {walletOptions.map((wallet) => (
-                <Button
-                  key={wallet.id}
-                  onClick={() => handleWalletSelect(wallet)}
-                  className="w-full bg-[#0C0C4F] hover:bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3 justify-start px-6 py-6"
-                >
-                  <span className="text-xl">{wallet.icon}</span>
-                  <div className="text-left">
-                    <div className="flex">
-                      <div className="font-medium">{wallet.name}</div>
-                      {wallet.description && <div className="text-sm opacity-80">{wallet.description}</div>}
+              {walletOptions.length > 0 ? (
+                walletOptions.map((wallet) => (
+                  <Button
+                    key={wallet.id}
+                    onClick={() => handleWalletSelect(wallet)}
+                    className="w-full bg-[#0C0C4F] hover:bg-slate-700 text-white p-4 rounded-lg flex items-center gap-3 justify-start px-6 py-6"
+                  >
+                    <span className="text-xl">{wallet.icon}</span>
+                    <div className="text-left">
+                      <div className="flex">
+                        <div className="font-medium">{wallet.name}</div>
+                        {wallet.description && <div className="text-sm opacity-80">{wallet.description}</div>}
+                      </div>
                     </div>
-                  </div>
-                </Button>
-              ))}
+                  </Button>
+                ))
+              ) : (
+                <div className="text-center py-8 text-slate-600">
+                  <p>No wallet options available.</p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
