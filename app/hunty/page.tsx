@@ -1,6 +1,8 @@
 "use client"
 
 import { ReactNode, useState } from "react"
+import { useRouter } from "next/navigation"
+import { createHunt } from "@/lib/contracts/hunt"
 import Image from "next/image"
 
 import { dynapuff } from "@/lib/font"
@@ -56,6 +58,8 @@ export default function CreateGame() {
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [showGameCompleteModal, setShowGameCompleteModal] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const router = useRouter()
+  const [isPublishing, setIsPublishing] = useState(false)
 
   const leaderboardData: LeaderboardEntry[] = [
     { position: 1, name: "JohnDoe", points: 9, icon: <Medal position={1} /> },
@@ -98,9 +102,39 @@ export default function CreateGame() {
     setRewards(rewards.map((reward) => (reward.place === place ? { ...reward, amount } : reward)))
   }
 
-  const handlePublish = () => {
-    setShowPublishModal(false)
-    setIsPlaying(true)
+  const handlePublish = async () => {
+    // Trigger blockchain flow: prompt wallet signature and simulate tx.
+    setIsPublishing(true)
+    try {
+      // derive start/end times (u64 timestamps)
+      const start_time = Math.floor(Date.now() / 1000)
+      let endMs = Date.now() + 60 * 60 * 1000 // default +1h
+      if (endDate) {
+        const parsed = new Date(endDate)
+        if (!isNaN(parsed.getTime())) endMs = parsed.getTime()
+      }
+      const end_time = Math.floor(endMs / 1000)
+
+      const description = hunts.map((h) => `${h.title}: ${h.description}`).join("\n")
+
+      // creator param can be empty; createHunt will request accounts
+      const res = await createHunt("", gameName, description, start_time, end_time)
+
+      // On success, add the published hunt locally and redirect to dashboard
+      setHunts((prev) => [
+        ...prev,
+        { id: Date.now(), title: gameName, description, link: "", code: "" },
+      ])
+
+      // Close modal and navigate to a dashboard route (adjust as needed)
+      setShowPublishModal(false)
+      router.push("/hunts")
+    } catch (err: any) {
+      // Display error to user
+      alert("Publish failed: " + (err?.message || String(err)))
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
   const handleTest = () => {
