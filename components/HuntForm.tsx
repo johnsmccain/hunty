@@ -3,8 +3,11 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import ToggleSwitch from "./ToggleButton"
-import { Minus } from "lucide-react"
+import { Minus, Plus, Trash2 } from "lucide-react"
 import { ChangeEvent, useRef, useState } from "react"
+import { addClue } from "@/lib/contracts/hunt"
+import { saveClueLocally } from "@/lib/huntStore"
+import { withTransactionToast } from "@/lib/txToast"
 
 interface Hunt {
   id: number
@@ -15,22 +18,35 @@ interface Hunt {
   image?: string
 }
 
+interface ClueRow {
+  id: number
+  question: string
+  answer: string
+  points: number
+}
+
 interface HuntFormProps {
   hunt: Hunt
   onUpdate: (field: keyof Hunt, value: string) => void
   onRemove: () => void
+  huntId?: number
+  onCluesSaved?: (count: number) => void
 }
 
-export function HuntForm({ hunt, onUpdate, onRemove }: HuntFormProps) {
+export function HuntForm({ hunt, onUpdate, onRemove, huntId, onCluesSaved }: HuntFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [clueRows, setClueRows] = useState<ClueRow[]>([
+    { id: 1, question: "", answer: "", points: 10 },
+  ])
+  const [isSavingClues, setIsSavingClues] = useState(false)
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
     setIsUploading(true)
-    
+
     try {
       // Here you would typically upload the file to your server
       // For now, we'll create a local URL for the image
@@ -46,6 +62,48 @@ export function HuntForm({ hunt, onUpdate, onRemove }: HuntFormProps) {
 
   const triggerFileInput = () => {
     fileInputRef.current?.click()
+  }
+
+  const addClueRow = () => {
+    const newId = clueRows.length > 0 ? Math.max(...clueRows.map((r) => r.id)) + 1 : 1
+    setClueRows([...clueRows, { id: newId, question: "", answer: "", points: 10 }])
+  }
+
+  const removeClueRow = (id: number) => {
+    if (clueRows.length > 1) {
+      setClueRows(clueRows.filter((r) => r.id !== id))
+    }
+  }
+
+  const updateClueRow = (id: number, field: keyof Omit<ClueRow, "id">, value: string | number) => {
+    setClueRows(clueRows.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+  }
+
+  const handleSaveClues = async () => {
+    if (!huntId) return
+    const valid = clueRows.filter((r) => r.question.trim() && r.answer.trim())
+    if (!valid.length) return
+
+    setIsSavingClues(true)
+    try {
+      for (const row of valid) {
+        const normalizedAnswer = row.answer.trim().toLowerCase()
+        await withTransactionToast(
+          () => addClue(huntId, row.question.trim(), normalizedAnswer, row.points),
+          { loading: "Adding clue...", submitted: "Clue submitted", success: "" }
+        )
+        saveClueLocally({
+          huntId,
+          question: row.question.trim(),
+          answer: normalizedAnswer,
+          points: row.points,
+        })
+      }
+      onCluesSaved?.(valid.length)
+      setClueRows([{ id: 1, question: "", answer: "", points: 10 }])
+    } finally {
+      setIsSavingClues(false)
+    }
   }
 
   return (
@@ -73,9 +131,9 @@ export function HuntForm({ hunt, onUpdate, onRemove }: HuntFormProps) {
             className="w-full pl-6 py-3"
           />
         <div className="relative">
-          <Button 
+          <Button
             type="button"
-            size="icon" 
+            size="icon"
             onClick={triggerFileInput}
             disabled={isUploading}
             className="bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] hover:bg-slate-700 rounded-[12px] text-white cursor-pointer disabled:opacity-50"
@@ -116,6 +174,75 @@ export function HuntForm({ hunt, onUpdate, onRemove }: HuntFormProps) {
           onChange={(e) => onUpdate("code", e.target.value)}
           className="w-full pl-6 py-3"
         />
+      </div>
+
+      {/* Clues section */}
+      <div className="space-y-3 pt-4 border-t border-slate-200">
+        <div className="flex items-center justify-between">
+          <span className="text-xl font-semibold bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] text-transparent bg-clip-text">
+            Clues
+          </span>
+          <Button
+            type="button"
+            onClick={addClueRow}
+            size="sm"
+            className="bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] text-white flex items-center gap-1 rounded-xl"
+          >
+            <Plus className="w-4 h-4" />
+            Add Clue
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {clueRows.map((row, index) => (
+            <div key={row.id} className="flex gap-2 items-center">
+              <span className="text-xs text-slate-400 w-4 shrink-0">{index + 1}.</span>
+              <Input
+                placeholder="Riddle / Question"
+                value={row.question}
+                onChange={(e) => updateClueRow(row.id, "question", e.target.value)}
+                className="flex-1 pl-3 py-2 text-sm"
+              />
+              <Input
+                placeholder="Answer"
+                value={row.answer}
+                onChange={(e) => updateClueRow(row.id, "answer", e.target.value)}
+                className="w-32 pl-3 py-2 text-sm"
+              />
+              <Input
+                type="number"
+                placeholder="Pts"
+                value={row.points}
+                min={1}
+                onChange={(e) => updateClueRow(row.id, "points", parseInt(e.target.value, 10) || 0)}
+                className="w-16 pl-3 py-2 text-sm"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeClueRow(row.id)}
+                disabled={clueRows.length === 1}
+                className="text-red-400 hover:text-red-600 shrink-0 disabled:opacity-30"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        {huntId && (
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              onClick={handleSaveClues}
+              disabled={isSavingClues || clueRows.every((r) => !r.question.trim() || !r.answer.trim())}
+              className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 text-white px-5 py-2 rounded-xl disabled:opacity-50"
+            >
+              {isSavingClues ? "Saving..." : "Save Clues"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

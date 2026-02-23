@@ -6,8 +6,8 @@ import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/Header"
 import { HuntDashboard } from "@/components/HuntDashboard"
-import { getCreatorHunts, updateHuntStatus, type StoredHunt } from "@/lib/huntStore"
-import { activateHunt } from "@/lib/contracts/hunt"
+import { getCreatorHunts, updateHuntStatus, saveClueLocally, type StoredHunt } from "@/lib/huntStore"
+import { activateHunt, addClue } from "@/lib/contracts/hunt"
 import { withTransactionToast } from "@/lib/txToast"
 
 export default function DashboardPage() {
@@ -32,6 +32,24 @@ export default function DashboardPage() {
     )
     updateHuntStatus(huntId, "Active")
   }, [])
+
+  const handleSaveClues = useCallback(
+    async (huntId: number, clues: { question: string; answer: string; points: number }[]) => {
+      for (const clue of clues) {
+        const normalizedAnswer = clue.answer.trim().toLowerCase()
+        await withTransactionToast(
+          () => addClue(huntId, clue.question.trim(), normalizedAnswer, clue.points),
+          {
+            loading: `Adding clue "${clue.question.trim().slice(0, 30)}..."`,
+            submitted: "Clue submitted",
+            success: "",
+          }
+        )
+        saveClueLocally({ huntId, question: clue.question.trim(), answer: normalizedAnswer, points: clue.points })
+      }
+    },
+    []
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blue-100 via-purple-100 to-[#f9f9ff] pb-12">
@@ -58,7 +76,12 @@ export default function DashboardPage() {
           Activate a draft hunt so players can see it in the Game Arcade. Active hunts cannot be edited.
         </p>
 
-        <HuntDashboard hunts={hunts} onActivate={handleActivate} onRefresh={refresh} />
+        <HuntDashboard
+          hunts={hunts}
+          onActivate={handleActivate}
+          onRefresh={refresh}
+          onSaveClues={handleSaveClues}
+        />
       </div>
     </div>
   )

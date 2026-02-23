@@ -13,7 +13,16 @@ export interface StoredHunt {
   status: HuntStatus
 }
 
+export interface Clue {
+  id: number
+  huntId: number
+  question: string
+  answer: string
+  points: number
+}
+
 const STORAGE_KEY = "hunty_hunts"
+const CLUES_KEY = "hunty_clues"
 
 const SEED_HUNTS: StoredHunt[] = [
   {
@@ -52,6 +61,27 @@ const SEED_HUNTS: StoredHunt[] = [
     status: "Draft",
   },
 ]
+
+function readClues(): Clue[] {
+  if (typeof window === "undefined") return []
+  try {
+    const raw = localStorage.getItem(CLUES_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as Clue[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeClues(clues: Clue[]): void {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(CLUES_KEY, JSON.stringify(clues))
+  } catch {
+    // ignore
+  }
+}
 
 function readHunts(): StoredHunt[] {
   if (typeof window === "undefined") return [...SEED_HUNTS]
@@ -95,4 +125,20 @@ export function addHunt(hunt: StoredHunt): void {
   const hunts = readHunts()
   if (hunts.some((h) => h.id === hunt.id)) return
   writeHunts([...hunts, hunt])
+}
+
+/** Get all clues for a specific hunt. */
+export function getHuntClues(huntId: number): Clue[] {
+  return readClues().filter((c) => c.huntId === huntId)
+}
+
+/** Persist a new clue locally and increment the hunt's cluesCount. */
+export function saveClueLocally(clue: Omit<Clue, "id">): void {
+  const all = readClues()
+  const newId = all.length > 0 ? Math.max(...all.map((c) => c.id)) + 1 : 1
+  writeClues([...all, { ...clue, id: newId }])
+  const hunts = readHunts().map((h) =>
+    h.id === clue.huntId ? { ...h, cluesCount: h.cluesCount + 1 } : h
+  )
+  writeHunts(hunts)
 }

@@ -1,15 +1,31 @@
 "use client"
 
 import { useState } from "react"
+import { Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardDescription, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import type { StoredHunt } from "@/lib/huntStore"
 import { ActivateHuntModal } from "@/components/ActivateHuntModal"
+
+interface ClueRow {
+  id: number
+  question: string
+  answer: string
+  points: number
+}
 
 interface HuntDashboardProps {
   hunts: StoredHunt[]
   onActivate: (huntId: number) => Promise<void>
   onRefresh: () => void
+  onSaveClues: (huntId: number, clues: ClueRow[]) => Promise<void>
 }
 
 function StatusBadge({ status }: { status: StoredHunt["status"] }) {
@@ -28,9 +44,14 @@ function StatusBadge({ status }: { status: StoredHunt["status"] }) {
   )
 }
 
-export function HuntDashboard({ hunts, onActivate, onRefresh }: HuntDashboardProps) {
+export function HuntDashboard({ hunts, onActivate, onRefresh, onSaveClues }: HuntDashboardProps) {
   const [modalHunt, setModalHunt] = useState<StoredHunt | null>(null)
   const [activatingId, setActivatingId] = useState<number | null>(null)
+  const [clueModalHunt, setClueModalHunt] = useState<StoredHunt | null>(null)
+  const [clueRows, setClueRows] = useState<ClueRow[]>([
+    { id: 1, question: "", answer: "", points: 10 },
+  ])
+  const [isSavingClues, setIsSavingClues] = useState(false)
 
   const handleActivateClick = (hunt: StoredHunt) => {
     setModalHunt(hunt)
@@ -47,6 +68,43 @@ export function HuntDashboard({ hunts, onActivate, onRefresh }: HuntDashboardPro
       setActivatingId(null)
     }
   }
+
+  const openClueModal = (hunt: StoredHunt) => {
+    setClueRows([{ id: 1, question: "", answer: "", points: 10 }])
+    setClueModalHunt(hunt)
+  }
+
+  const addClueRow = () => {
+    const newId = clueRows.length > 0 ? Math.max(...clueRows.map((r) => r.id)) + 1 : 1
+    setClueRows([...clueRows, { id: newId, question: "", answer: "", points: 10 }])
+  }
+
+  const removeClueRow = (id: number) => {
+    if (clueRows.length > 1) {
+      setClueRows(clueRows.filter((r) => r.id !== id))
+    }
+  }
+
+  const updateClueRow = (id: number, field: keyof Omit<ClueRow, "id">, value: string | number) => {
+    setClueRows(clueRows.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+  }
+
+  const handleSaveClues = async () => {
+    if (!clueModalHunt) return
+    const valid = clueRows.filter((r) => r.question.trim() && r.answer.trim())
+    if (!valid.length) return
+
+    setIsSavingClues(true)
+    try {
+      await onSaveClues(clueModalHunt.id, valid)
+      onRefresh()
+      setClueModalHunt(null)
+    } finally {
+      setIsSavingClues(false)
+    }
+  }
+
+  const cluesAreValid = clueRows.some((r) => r.question.trim() && r.answer.trim())
 
   return (
     <>
@@ -73,14 +131,27 @@ export function HuntDashboard({ hunts, onActivate, onRefresh }: HuntDashboardPro
                   <span className="text-xs text-slate-500">
                     {hunt.cluesCount} {hunt.cluesCount === 1 ? "clue" : "clues"}
                   </span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleActivateClick(hunt)}
-                    disabled={!canActivate}
-                    className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 disabled:opacity-50 disabled:pointer-events-none"
-                  >
-                    Activate
-                  </Button>
+                  <div className="flex gap-2">
+                    {isDraft && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openClueModal(hunt)}
+                        className="border-[#3737A4] text-[#3737A4] hover:bg-[#3737A4] hover:text-white"
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Add Clues
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      onClick={() => handleActivateClick(hunt)}
+                      disabled={!canActivate}
+                      className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 disabled:opacity-50 disabled:pointer-events-none"
+                    >
+                      Activate
+                    </Button>
+                  </div>
                 </div>
                 {isDraft && !hasClues && (
                   <p className="mt-2 text-xs text-amber-600">
@@ -100,6 +171,88 @@ export function HuntDashboard({ hunts, onActivate, onRefresh }: HuntDashboardPro
         huntTitle={modalHunt?.title ?? ""}
         isActivating={activatingId !== null}
       />
+
+      {/* Add Clues Modal */}
+      <Dialog open={!!clueModalHunt} onOpenChange={(open) => !open && setClueModalHunt(null)}>
+        <DialogContent showCloseButton className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] text-transparent bg-clip-text">
+              Add Clues — {clueModalHunt?.title}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-[1fr_1fr_56px_32px] gap-2 px-1">
+              <span className="text-xs font-medium text-slate-500">Riddle / Question</span>
+              <span className="text-xs font-medium text-slate-500">Answer</span>
+              <span className="text-xs font-medium text-slate-500">Points</span>
+              <span />
+            </div>
+
+            {clueRows.map((row, index) => (
+              <div key={row.id} className="grid grid-cols-[1fr_1fr_56px_32px] gap-2 items-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-slate-400 shrink-0 w-4">{index + 1}.</span>
+                  <Input
+                    placeholder="e.g. What has keys but no locks?"
+                    value={row.question}
+                    onChange={(e) => updateClueRow(row.id, "question", e.target.value)}
+                    className="pl-3 py-2 text-sm"
+                  />
+                </div>
+                <Input
+                  placeholder="keyboard"
+                  value={row.answer}
+                  onChange={(e) => updateClueRow(row.id, "answer", e.target.value)}
+                  className="pl-3 py-2 text-sm"
+                />
+                <Input
+                  type="number"
+                  placeholder="10"
+                  value={row.points}
+                  min={1}
+                  onChange={(e) => updateClueRow(row.id, "points", parseInt(e.target.value, 10) || 0)}
+                  className="pl-3 py-2 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeClueRow(row.id)}
+                  disabled={clueRows.length === 1}
+                  className="text-red-400 hover:text-red-600 disabled:opacity-30"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addClueRow}
+              className="flex items-center gap-1 border-[#3737A4] text-[#3737A4] hover:bg-[#3737A4] hover:text-white"
+            >
+              <Plus className="w-4 h-4" />
+              Add Row
+            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setClueModalHunt(null)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveClues}
+                disabled={isSavingClues || !cluesAreValid}
+                className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 text-white disabled:opacity-50"
+              >
+                {isSavingClues ? "Saving..." : "Save Clues"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
