@@ -35,11 +35,7 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff]">
       <Header
-        isConnected={true}
         balance="24.2453"
-        walletAddress="0xe5f...E5"
-        onConnectWallet={() => {}}
-        onDisconnect={() => {}}
       />
 
       <div className="max-w-[1500px] px-14 pt-10 pb-12 bg-white mx-auto rounded-4xl relative">

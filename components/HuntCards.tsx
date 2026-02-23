@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import picture from "@/public/static-images/image1.png";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface Hunt {
   id: string | number;
@@ -21,6 +22,7 @@ interface HuntCardsProps {
   onUnlock?: () => void;
   currentIndex?: number;
   totalHunts?: number;
+  isLoading?: boolean;
 }
 
 
@@ -31,8 +33,9 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
   onUnlock,
   currentIndex = 1,
   totalHunts = 1,
+  isLoading = false,
 }) => {
-  const hunt = hunts[0];
+  const hunt = hunts && hunts.length > 0 ? hunts[0] : {} as Hunt;
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -63,6 +66,26 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") handleUnlock();
   };
+
+  if (isLoading) {
+    return (
+      <div className={`rounded-2xl shadow-lg w-full max-w-[400px] transition-all duration-300 ${isActive ? "scale-105 border-2 border-blue-400" : preview ? "opacity-70" : "opacity-90"}`}>
+        <div className="rounded-t-2xl p-6 bg-gradient-to-b from-[#3737A4] to-[#0C0C4F]">
+          <div className="flex justify-end mb-2">
+            <Skeleton className="h-4 w-12 bg-white/20" />
+          </div>
+          <Skeleton className="h-7 w-3/4 mb-2 bg-white/20" />
+          <Skeleton className="h-4 w-full mb-2 bg-white/20" />
+          <Skeleton className="h-4 w-5/6 mb-4 bg-white/20" />
+          <Skeleton className="w-[180px] h-[180px] rounded-md bg-white/20" />
+        </div>
+        <div className="bg-white flex gap-2 p-6 rounded-b-2xl items-center">
+          <Skeleton className="flex-1 h-10 rounded-full bg-gray-200" />
+          <Skeleton className="h-10 w-[72px] rounded-xl bg-gray-200" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`rounded-2xl shadow-lg w-full max-w-[400px] transition-all duration-300 ${isActive ? "scale-105 border-2 border-blue-400" : preview ? "opacity-70" : "opacity-90"}`}>

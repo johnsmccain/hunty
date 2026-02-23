@@ -4,6 +4,7 @@ import { ReactNode, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
+import { z } from "zod"
 import { createHunt } from "@/lib/contracts/hunt"
 import { withTransactionToast } from "@/lib/txToast"
 
@@ -54,14 +55,48 @@ export default function CreateGame() {
   const [hunts, setHunts] = useState<Hunt[]>([{ id: 1, title: "", description: "", link: "", code: "" }])
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [gameName, setGameName] = useState("Hunty")
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [timer, setTimer] = useState({ minutes: 0, seconds: 15 })
+  const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [endTime, setEndTime] = useState("00:00 AM")
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [showGameCompleteModal, setShowGameCompleteModal] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const router = useRouter()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isPublishing, setIsPublishing] = useState(false)
+
+  const rewardPool = rewards.reduce((sum, r) => sum + r.amount, 0);
+
+  const formSchema = z.object({
+    title: z.string().min(4, "Title length must be > 3 chars."),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid or empty start date."),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid or empty end date."),
+    rewardPool: z.number().min(0, "Reward Pool must be >= 0.")
+  }).refine(
+    (data) => {
+      const s = new Date(data.startDate);
+      const e = new Date(data.endDate);
+      if (!isNaN(s.getTime()) && !isNaN(e.getTime())) return s < e;
+      return true;
+    },
+    {
+      message: "Start Date must be before End Date.",
+      path: ["startDate"],
+    }
+  );
+
+  const validationResult = formSchema.safeParse({
+    title: gameName,
+    startDate,
+    endDate,
+    rewardPool,
+  });
+
+  const errors = validationResult.success ? {} : validationResult.error.flatten().fieldErrors;
+  const isFormValid = validationResult.success;
 
   const leaderboardData: LeaderboardEntry[] = [
     { position: 1, name: "JohnDoe", points: 9, icon: <Medal position={1} /> },
@@ -174,11 +209,7 @@ export default function CreateGame() {
     return (
       <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff]">
         <Header
-          isConnected={true}
           balance="24.2453"
-          walletAddress="0xe5f...E5"
-          onConnectWallet={() => {}}
-          onDisconnect={() => {}}
         />
 
         <div className="max-w-[1600px] px-14 pt-10 pb-12 bg-white mx-auto rounded-4xl relative">
@@ -219,11 +250,7 @@ export default function CreateGame() {
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff] pb-28">
       <Header
-        isConnected={true}
         balance="24.2453"
-        walletAddress="0xe5f...E5"  
-        onConnectWallet={() => {}}
-        onDisconnect={() => {}}
       />
 
       <div className="max-w-[1500px] mx-40 pb-12 bg-white rounded-4xl  relative ">
@@ -288,7 +315,7 @@ export default function CreateGame() {
 
               {activeTab === "rewards" && (
                 <div className="space-y-6">
-                  <RewardsPanel rewards={rewards} onUpdateReward={updateReward} onAddReward={addReward} onDeleteReward={deleteReward} />
+                  <RewardsPanel rewards={rewards} onUpdateReward={updateReward} onAddReward={addReward} onDeleteReward={deleteReward} error={errors.rewardPool?.[0]} />
 
                   <div className="flex justify-between">
                     <Button className="bg-gradient-to-b from-[#576065] to-[#787884] hover:bg-gray-500 text-white px-8 py-2 rounded-xl flex items-center gap-2 text-xl font-black">
@@ -307,12 +334,15 @@ export default function CreateGame() {
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Give It A Name</label>
-                    <Input 
-                      value={gameName} 
-                      placeholder="Hunty" 
-                      onChange={(e) => setGameName(e.target.value)} 
-                      className="w-[230px] [&::placeholder]:bg-gradient-to-r [&::placeholder]:from-[#3737A4] [&::placeholder]:to-[#0C0C4F] [&::placeholder]:bg-clip-text [&::placeholder]:text-transparent text-[16px]"
-                    />
+                    <div className="flex flex-col gap-1 items-end">
+                      <Input 
+                        value={gameName} 
+                        placeholder="Hunty" 
+                        onChange={(e) => setGameName(e.target.value)} 
+                        className="w-[230px] [&::placeholder]:bg-gradient-to-r [&::placeholder]:from-[#3737A4] [&::placeholder]:to-[#0C0C4F] [&::placeholder]:bg-clip-text [&::placeholder]:text-transparent text-[16px]"
+                      />
+                      {errors.title && <span className="text-red-500 text-sm">{errors.title[0]}</span>}
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -350,11 +380,24 @@ export default function CreateGame() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <label className="block text-xl font-normal text-[#808080]">End Date</label>
-                    <div className="flex gap-[8px]">  
-                       <Input placeholder="dd/mm/yy" className="h-11 w-[110px] text-center"/>
-                       <Input placeholder="00:00 AM" className="h-11 w-[110px] text-center"/></div>
+                    <label className="block text-xl font-normal text-[#808080]">Start Date</label>
+                    <div className="flex flex-col gap-1 items-end">
+                      <div className="flex gap-[8px]">  
+                         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-11 w-[140px] text-center"/>
+                      </div>
+                      {errors.startDate && <span className="text-red-500 text-sm">{errors.startDate[0]}</span>}
                     </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xl font-normal text-[#808080]">End Date</label>
+                    <div className="flex flex-col gap-1 items-end">
+                      <div className="flex gap-[8px]">  
+                         <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-11 w-[140px] text-center"/>
+                      </div>
+                      {errors.endDate && <span className="text-red-500 text-sm">{errors.endDate[0]}</span>}
+                    </div>
+                  </div>
 
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Share Link/Generate QR Code</label>
@@ -389,7 +432,8 @@ export default function CreateGame() {
                     </Button>
                     <Button
                       onClick={() => setShowPublishModal(true)}
-                      className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 text-white text-xl px-6 py-3 rounded-lg flex items-center gap-2"
+                      disabled={!isFormValid}
+                      className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xl px-6 py-3 rounded-lg flex items-center gap-2"
                     >
                       <span><PlayCircle/></span>
                       Publish Game
