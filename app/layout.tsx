@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${hankenGrotesk.variable} antialiased`}>
+      <body className={`${hankenGrotesk.variable} antialiased`} suppressHydrationWarning>
         <TxToaster />
         {children}
       </body>
