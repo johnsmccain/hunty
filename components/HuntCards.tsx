@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import picture from "@/public/static-images/image1.png";
 import { Skeleton } from "@/components/ui/skeleton";
+import { submitAnswer, AnswerIncorrectError } from "@/lib/contracts/hunt";
 
 export interface Hunt {
   id: string | number;
@@ -23,8 +24,13 @@ interface HuntCardsProps {
   currentIndex?: number;
   totalHunts?: number;
   isLoading?: boolean;
+  /** Overall game/hunt ID — when provided, answers go to the contract. */
+  huntId?: number;
+  /** Called with the points awarded after a correct answer. */
+  onScoreUpdate?: (points: number) => void;
 }
 
+const DEFAULT_POINTS = 10;
 
 export const HuntCards: React.FC<HuntCardsProps> = ({
   hunts,
@@ -34,31 +40,64 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
   currentIndex = 1,
   totalHunts = 1,
   isLoading = false,
+  huntId,
+  onScoreUpdate,
 }) => {
   const hunt = hunts && hunts.length > 0 ? hunts[0] : {} as Hunt;
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isPending) return;
     setInput(e.target.value);
     setError("");
     setSuccess(false);
   };
 
-  const handleUnlock = () => {
-    if (!isActive || preview) return;
-    if (input.trim().toLowerCase() === (hunt.code || "").trim().toLowerCase()) {
-      setSuccess(true);
+  const handleUnlock = async () => {
+    if (!isActive || preview || isPending) return;
+
+    if (huntId != null) {
+      // Contract path: submit_answer → ClueCompleted | AnswerIncorrect
+      setIsPending(true);
       setError("");
-      setInput("");
-      setTimeout(() => {
+      try {
+        await submitAnswer(huntId, Number(hunt.id), input);
+        // ClueCompleted event received
+        setSuccess(true);
+        setInput("");
+        onScoreUpdate?.(DEFAULT_POINTS);
+        setTimeout(() => {
+          setSuccess(false);
+          onUnlock?.();
+        }, 1200);
+      } catch (err) {
+        if (err instanceof AnswerIncorrectError) {
+          setError("Try Again");
+        } else {
+          setError(err instanceof Error ? err.message : "Submission failed. Try again.");
+        }
         setSuccess(false);
-        if (onUnlock) onUnlock();
-      }, 700);
+      } finally {
+        setIsPending(false);
+      }
     } else {
-      setError("Incorrect code. Try again.");
-      setSuccess(false);
+      // Local fallback (test / preview mode — no wallet required)
+      if (input.trim().toLowerCase() === (hunt.code || "").trim().toLowerCase()) {
+        setSuccess(true);
+        setError("");
+        setInput("");
+        onScoreUpdate?.(DEFAULT_POINTS);
+        setTimeout(() => {
+          setSuccess(false);
+          onUnlock?.();
+        }, 1200);
+      } else {
+        setError("Try Again");
+        setSuccess(false);
+      }
     }
   };
 
@@ -87,6 +126,8 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
     );
   }
 
+  const isLocked = !isActive || preview || isPending;
+
   return (
     <div className={`rounded-2xl shadow-lg w-full max-w-[400px] transition-all duration-300 ${isActive ? "scale-105 border-2 border-blue-400" : preview ? "opacity-70" : "opacity-90"}`}>
       <div className="rounded-t-2xl p-6 text-white bg-gradient-to-b from-[#3737A4] to-[#0C0C4F]">
@@ -102,32 +143,48 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
         {hunt.link || hunt.image ? (
           <Image src={hunt.link || hunt.image || picture} alt="hunt" width={180} height={180} />
         ) : (
-          <Image src={picture} alt="hunt" width={180} height={180}  />
+          <Image src={picture} alt="hunt" width={180} height={180} />
         )}
       </div>
+
       {/* Input and button only for active, non-preview cards */}
       <div className="bg-white flex gap-2 p-6 rounded-b-2xl items-center">
         <Input
-          placeholder={isActive ? "Enter code to unlock" : "Locked"}
-          className={`flex-1 px-4 py-2 rounded-full ${!isActive ? "bg-gray-100 cursor-not-allowed" : ""}`}
+          placeholder={isActive && !preview ? "Enter answer to unlock" : "Locked"}
+          className={`flex-1 px-4 py-2 rounded-full transition-colors ${isLocked ? "bg-gray-100 cursor-not-allowed" : ""}`}
           value={input}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          disabled={!isActive || preview}
+          disabled={isLocked}
         />
         <Button
-          className={`bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] hover:bg-purple-700 text-white px-6 py-2 rounded-xl transition-all duration-200 ${!isActive || preview ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] hover:bg-purple-700 text-white px-6 py-2 rounded-xl transition-all duration-200 ${isLocked ? "opacity-50 cursor-not-allowed" : ""}`}
           onClick={handleUnlock}
-          disabled={!isActive || preview}
+          disabled={isLocked}
         >
-          <ArrowRight className="w-4 h-4" />
+          {isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <ArrowRight className="w-4 h-4" />
+          )}
         </Button>
       </div>
+
       {/* Feedback */}
-      {/* <div className="min-h-[24px] text-center">
-        {success && <span className="text-green-600 font-semibold">Correct! Unlocked.</span>}
-        {error && <span className="text-red-500 font-semibold">{error}</span>}
-      </div> */}
+      <div className="bg-white rounded-b-2xl -mt-4 pb-4 px-6 min-h-[36px]">
+        {success && (
+          <div className="flex items-center justify-center gap-2 text-green-600 font-bold text-base animate-bounce">
+            <CheckCircle2 className="w-5 h-5" />
+            Correct!
+          </div>
+        )}
+        {!success && isPending && (
+          <p className="text-center text-slate-400 text-sm">Verifying on-chain…</p>
+        )}
+        {!success && !isPending && error && (
+          <p className="text-center text-red-500 font-semibold text-sm">{error}</p>
+        )}
+      </div>
     </div>
   );
 };

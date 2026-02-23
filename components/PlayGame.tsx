@@ -26,11 +26,17 @@ interface PlayGameProps {
   onExit: () => void
   onGameComplete: () => void
   gameCompleteModal: React.ReactNode
+  /** Overall hunt/game ID from the contract. When provided, answers are submitted on-chain. */
+  huntId?: number
 }
 
-export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameCompleteModal }: PlayGameProps) {
-  const [unlockCode, setUnlockCode] = useState("")
+export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameCompleteModal, huntId }: PlayGameProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
+  const [score, setScore] = useState(0)
+
+  const handleScoreUpdate = (points: number) => {
+    setScore((prev) => prev + points)
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff]">
@@ -60,6 +66,14 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
              <Image src="/icons/logo.png" alt="Logo" width={96} height={96} />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-b to-[#3737A4] from-[#0C0C4F] bg-clip-text text-transparent mb-6">Play {gameName}</h1>
+
+          {/* Score display */}
+          <div className="inline-flex items-center gap-2 bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] text-white px-5 py-2 rounded-full text-sm font-semibold mb-4">
+            <span>Score:</span>
+            <span className="text-lg font-bold">{score}</span>
+            <span className="text-xs opacity-75">pts</span>
+          </div>
+
           <div className="flex justify-center gap-4 mb-8">
             <Button className="bg-gradient-to-b from-[#E3225C] to-[#7B1C4A] hover:bg-pink-600 text-white px-6 py-2 rounded-full flex items-center gap-2">
               <Replay/> Reset
@@ -70,7 +84,7 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
             </Button>
           </div>
         </div>
-        
+
         {/* Updated layout for centered first card and right-positioned subsequent cards */}
         <div className="relative flex justify-center mt-8 min-h-[500px] overflow-x-auto">
           {/* Container for all cards */}
@@ -79,7 +93,7 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
             {currentCardIndex > 0 && (
               <div className="absolute left-0 top-0 flex flex-col gap-4 mr-8">
                 <div className="opacity-40 scale-60 transform origin-right">
-                  <HuntCards 
+                  <HuntCards
                     hunts={[hunts[currentCardIndex - 1]]}
                     isActive={false}
                     preview={true}
@@ -89,12 +103,14 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
                 </div>
               </div>
             )}
-            
+
             {/* Center - Current active card */}
             <div className="flex justify-center mx-auto z-10">
-              <HuntCards 
+              <HuntCards
                 hunts={[hunts[currentCardIndex]]}
                 isActive={true}
+                huntId={huntId}
+                onScoreUpdate={handleScoreUpdate}
                 onUnlock={() => {
                   if (currentCardIndex < hunts.length - 1) {
                     setCurrentCardIndex(prev => prev + 1);
@@ -106,13 +122,13 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
                 totalHunts={hunts.length}
               />
             </div>
-            
+
             {/* Right side - Next cards */}
             {currentCardIndex < hunts.length - 1 && (
               <div className="absolute right-0 top-0 flex flex-col gap-6 ml-8">
                 {hunts.slice(currentCardIndex + 1, currentCardIndex + 3).map((hunt, index) => (
                   <div key={hunt.id} className="opacity-80 scale-90 transform origin-left hover:opacity-95 transition-all duration-300 border-2 border-blue-300/50 rounded-lg shadow-lg hover:border-blue-400 hover:shadow-xl">
-                    <HuntCards 
+                    <HuntCards
                       hunts={[hunt]}
                       isActive={false}
                       preview={true}
@@ -121,7 +137,7 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
                     />
                   </div>
                 ))}
-                
+
                 {/* Show indicator if there are more cards */}
                 {currentCardIndex + 3 < hunts.length && (
                   <div className="text-center text-slate-600 text-sm mt-2 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
@@ -130,12 +146,6 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
                 )}
               </div>
             )}
-          </div>
-          
-          {/* Debug info - remove this in production */}
-          <div className="absolute bottom-4 left-4 text-xs text-gray-500 bg-white p-2 rounded">
-            Current: {currentCardIndex + 1}/{hunts.length} | 
-            Next cards: {currentCardIndex < hunts.length - 1 ? 'Visible' : 'None'}
           </div>
         </div>
 
