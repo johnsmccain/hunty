@@ -281,3 +281,89 @@ export async function submitAnswer(
     throw err
   }
 }
+
+export type AddClueResult = {
+  txHash: string
+}
+
+/**
+ * Calls the smart contract's add_clue(hunt_id: u64, question: String, answer: String, points: u32).
+ * The answer is trimmed and normalized to lowercase before signing to match contract expectations.
+ */
+export async function addClue(
+  huntId: number,
+  question: string,
+  answer: string,
+  points: number
+): Promise<AddClueResult> {
+  if (typeof window === "undefined") throw new Error("Browser environment required")
+
+  const RPC = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || "https://rpc.testnet.soroban.stellar.org"
+  const server = new Server(RPC)
+
+  const win = window as Window & { freighter?: unknown; soroban?: unknown; sorobanWallet?: unknown }
+  const wallet = win.freighter ?? win.soroban ?? win.sorobanWallet
+  if (!wallet) {
+    throw new Error("No Soroban-compatible wallet detected (install Freighter or Soroban Wallet).")
+  }
+
+  let publicKey: string | undefined
+  const w = wallet as { getPublicKey?: () => Promise<string>; request?: (arg: { method: string }) => Promise<string> }
+  if (w.getPublicKey) {
+    publicKey = await w.getPublicKey()
+  } else if (typeof w.request === "function") {
+    try {
+      publicKey = await w.request({ method: "getPublicKey" })
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!publicKey) {
+    throw new Error("Unable to obtain public key from wallet; ensure you are connected.")
+  }
+
+  const normalizedAnswer = answer.trim().toLowerCase()
+
+  const account = await server.getAccount(publicKey)
+  const payload = JSON.stringify({
+    action: "add_clue",
+    hunt_id: huntId,
+    question,
+    answer: normalizedAnswer,
+    points,
+  })
+  const key = `add_clue:${Date.now()}`
+  const op = Operation.manageData({ name: key, value: payload })
+
+  const tx = new TransactionBuilder(account, {
+    fee: "100",
+    networkPassphrase: Networks.TESTNET,
+  })
+    .addOperation(op)
+    .setTimeout(180)
+    .build()
+
+  const signWallet = wallet as {
+    signTransaction?: (xdr: string) => Promise<string>
+    request?: (arg: { method: string; params?: { tx: string } }) => Promise<string>
+  }
+  let signedXdr: string | undefined
+  if (signWallet.signTransaction) {
+    signedXdr = await signWallet.signTransaction(tx.toXDR())
+  } else if (typeof signWallet.request === "function") {
+    try {
+      signedXdr = await signWallet.request({ method: "signTransaction", params: { tx: tx.toXDR() } })
+    } catch {
+      // continue to error
+    }
+  }
+
+  if (!signedXdr) {
+    throw new Error("Wallet does not support signing via the detected API; please use Freighter or Soroban Wallet.")
+  }
+
+  const res = await server.submitTransaction(signedXdr)
+  if (!res?.hash) throw new Error("Transaction submission failed")
+  return { txHash: res.hash }
+}
