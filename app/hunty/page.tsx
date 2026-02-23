@@ -2,13 +2,15 @@
 
 import { ReactNode, useState } from "react"
 import { useRouter } from "next/navigation"
-import { createHunt } from "@/lib/contracts/hunt"
 import Image from "next/image"
+
+import { createHunt } from "@/lib/contracts/hunt"
+import { withTransactionToast } from "@/lib/txToast"
 
 import { dynapuff } from "@/lib/font"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ArrowLeft, ArrowRight, Plus, QrCode, Download, Printer} from "lucide-react"
+import { ArrowLeft, ArrowRight, Plus, QrCode, Download, Printer } from "lucide-react"
 import { Header } from "@/components/Header"
 import { CreateGameTabs } from "@/components/CreateGameTabs"
 import { HuntForm } from "@/components/HuntForm"
@@ -23,7 +25,7 @@ import PlayCircle from "@/components/icons/PlayCircle"
 import ToggleButton from "@/components/ToggleButton"
 import Replay from "@/components/icons/Replay"
 import Medal from "@/components/icons/Medal"
-import {Reward} from "@/components/RewardsPanel"
+import { Reward } from "@/components/RewardsPanel"
 
 interface Hunt {
   id: number
@@ -103,12 +105,10 @@ export default function CreateGame() {
   }
 
   const handlePublish = async () => {
-    // Trigger blockchain flow: prompt wallet signature and simulate tx.
     setIsPublishing(true)
     try {
-      // derive start/end times (u64 timestamps)
       const start_time = Math.floor(Date.now() / 1000)
-      let endMs = Date.now() + 60 * 60 * 1000 // default +1h
+      let endMs = Date.now() + 60 * 60 * 1000
       if (endDate) {
         const parsed = new Date(endDate)
         if (!isNaN(parsed.getTime())) endMs = parsed.getTime()
@@ -117,21 +117,22 @@ export default function CreateGame() {
 
       const description = hunts.map((h) => `${h.title}: ${h.description}`).join("\n")
 
-      // creator param can be empty; createHunt will request accounts
-      const res = await createHunt("", gameName, description, start_time, end_time)
+      await withTransactionToast(
+        () => createHunt("", gameName, description, start_time, end_time),
+        {
+          loading: "Confirming in Wallet...",
+          submitted: "Transaction Submitted",
+          success: "Success!",
+        }
+      )
 
-      // On success, add the published hunt locally and redirect to dashboard
       setHunts((prev) => [
         ...prev,
         { id: Date.now(), title: gameName, description, link: "", code: "" },
       ])
 
-      // Close modal and navigate to a dashboard route (adjust as needed)
       setShowPublishModal(false)
       router.push("/hunts")
-    } catch (err: any) {
-      // Display error to user
-      alert("Publish failed: " + (err?.message || String(err)))
     } finally {
       setIsPublishing(false)
     }
