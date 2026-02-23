@@ -133,11 +133,7 @@ export default function GameArcade() {
     >
       {/* Header */}
       <Header
-        isConnected={isConnected}
         balance={balance}
-        walletAddress={walletAddress}
-        onConnectWallet={() => setIsWalletModalOpen(true)}
-        onDisconnect={handleDisconnect}
       />
 
       {/* Main Content */}
