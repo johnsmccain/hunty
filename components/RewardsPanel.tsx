@@ -17,9 +17,10 @@ export interface RewardsPanelProps {
   onUpdateReward: (place: number, amount: number) => void;
   onAddReward: () => void;
   onDeleteReward: (place: number) => void;
+  error?: string;
 }
 
-export function RewardsPanel({ rewards, onUpdateReward, onAddReward, onDeleteReward }: RewardsPanelProps) {
+export function RewardsPanel({ rewards, onUpdateReward, onAddReward, onDeleteReward, error }: RewardsPanelProps) {
 
 
 
@@ -35,7 +36,7 @@ export function RewardsPanel({ rewards, onUpdateReward, onAddReward, onDeleteRew
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={() => onUpdateReward(reward.place, Math.max(0, reward.amount - 0.1))}
+                onClick={() => onUpdateReward(reward.place, reward.amount - 0.1)}
                 className="w-6 h-6 border-2 border-transparent bg-gradient-to-r from-[#0C0C4F] to-[#4A4AFF] bg-origin-border hover:opacity-80 rounded-lg"
                 style={{
                   background: 'linear-gradient(white, white) padding-box, linear-gradient(to right, #0C0C4F, #4A4AFF) border-box'
@@ -69,12 +70,15 @@ export function RewardsPanel({ rewards, onUpdateReward, onAddReward, onDeleteRew
         </div>
       ))}
 
-      <Button
-          className="bg-white text-[#808080] text-[16px] font-medium hover:bg-gray-100 px-6 py-2 rounded-full border-2 border-dashed border-[#808080] cursor-pointer"
-          onClick={onAddReward}
-                >
-          Add Reward for Runner-up
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button
+            className="bg-white text-[#808080] text-[16px] font-medium hover:bg-gray-100 px-6 py-2 rounded-full border-2 border-dashed border-[#808080] cursor-pointer"
+            onClick={onAddReward}
+                  >
+            Add Reward for Runner-up
+        </Button>
+        {error && <span className="text-red-500 text-sm text-center">{error}</span>}
+      </div>
     </div>
   )
 }
