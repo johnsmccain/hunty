@@ -2,7 +2,7 @@
 
 import {hankenGrotesk} from "@/lib/font"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -24,6 +24,45 @@ interface WalletOption {
 
 const walletOptions: WalletOption[] = []
 
+type HuntStatus = "Active" | "Completed" | "Draft"
+
+interface ArcadeHunt {
+  id: string | number
+  title: string
+  description: string
+  cluesCount: number
+  status: HuntStatus
+}
+
+// Temporary data fetcher; replace with real Soroban/indexer integration.
+async function fetchAllHunts(): Promise<ArcadeHunt[]> {
+  // TODO: wire this to Soroban or an indexer once available.
+  // For now this simulates a small list of hunts.
+  return [
+    {
+      id: 1,
+      title: "City Secrets",
+      description: "Race across town to uncover hidden murals and landmarks.",
+      cluesCount: 5,
+      status: "Active",
+    },
+    {
+      id: 2,
+      title: "Campus Quest",
+      description: "Solve riddles scattered around campus before the timer ends.",
+      cluesCount: 7,
+      status: "Active",
+    },
+    {
+      id: 3,
+      title: "Office Onboarding Hunt",
+      description: "A playful intro game for new teammates around the office.",
+      cluesCount: 4,
+      status: "Completed",
+    },
+  ]
+}
+
 export default function GameArcade() {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
   const [isConnectingWallet, setIsConnectingWallet] = useState(false)
@@ -33,6 +72,34 @@ export default function GameArcade() {
   const [isConnected, setIsConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState("")
   const [balance, setBalance] = useState("")
+
+  const [hunts, setHunts] = useState<ArcadeHunt[]>([])
+  const [isLoadingHunts, setIsLoadingHunts] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadHunts = async () => {
+      try {
+        const all = await fetchAllHunts()
+        if (cancelled) return
+        const active = all.filter((hunt) => hunt.status === "Active")
+        setHunts(active)
+      } catch (error) {
+        console.error("Failed to fetch hunts", error)
+      } finally {
+        if (!cancelled) {
+          setIsLoadingHunts(false)
+        }
+      }
+    }
+
+    loadHunts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleWalletSelect = (wallet: WalletOption) => {
     setSelectedWallet(wallet)
@@ -157,8 +224,67 @@ export default function GameArcade() {
 
               </div>
 
-            </div>    
+            </div>
 
+        </div>
+
+        {/* Active Hunts Grid */}
+        <div className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl md:text-3xl font-semibold bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] bg-clip-text text-transparent">
+              Browse Active Hunts
+            </h2>
+            <p className="text-sm text-slate-600">
+              {isLoadingHunts ? "Loading hunts..." : `${hunts.length} active ${hunts.length === 1 ? "hunt" : "hunts"} found`}
+            </p>
+          </div>
+
+          {isLoadingHunts ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-2xl border border-slate-200 bg-slate-100/60 p-4 animate-pulse space-y-3"
+                >
+                  <div className="h-5 w-3/4 bg-slate-200 rounded" />
+                  <div className="h-3 w-full bg-slate-200 rounded" />
+                  <div className="h-3 w-5/6 bg-slate-200 rounded" />
+                  <div className="h-4 w-24 bg-slate-300 rounded-full mt-4" />
+                </div>
+              ))}
+            </div>
+          ) : hunts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/80 py-10 text-center text-slate-600">
+              No active hunts available right now.{" "}
+              <span className="font-semibold text-[#3737A4]">Be the first to create one!</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {hunts.map((hunt) => (
+                <Card
+                  key={hunt.id}
+                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="p-5">
+                    <CardTitle className="text-lg font-semibold mb-2 line-clamp-2">
+                      {hunt.title}
+                    </CardTitle>
+                    <CardDescription className="text-sm text-slate-600 mb-4 line-clamp-3">
+                      {hunt.description}
+                    </CardDescription>
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-medium text-[#3737A4]">
+                        {hunt.cluesCount} {hunt.cluesCount === 1 ? "Clue" : "Clues"}
+                      </span>
+                      <span className="text-[11px] font-semibold text-emerald-600">
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
