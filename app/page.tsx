@@ -1,19 +1,16 @@
 "use client"
 
-import {hankenGrotesk} from "@/lib/font"
-
 import { useEffect, useState } from "react"
+import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { X, ArrowRight, ArrowLeftRight } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
+import { X, ArrowRight } from "lucide-react"
 import { Card, CardDescription, CardTitle } from "@/components/ui/card"
 import { Header } from "@/components/Header"
-
-
-
+import { getAllHunts } from "@/lib/huntStore"
+import { hankenGrotesk } from "@/lib/font"
 
 interface WalletOption {
   id: string
@@ -24,43 +21,9 @@ interface WalletOption {
 
 const walletOptions: WalletOption[] = []
 
-type HuntStatus = "Active" | "Completed" | "Draft"
-
-interface ArcadeHunt {
-  id: string | number
-  title: string
-  description: string
-  cluesCount: number
-  status: HuntStatus
-}
-
-// Temporary data fetcher; replace with real Soroban/indexer integration.
-async function fetchAllHunts(): Promise<ArcadeHunt[]> {
-  // TODO: wire this to Soroban or an indexer once available.
-  // For now this simulates a small list of hunts.
-  return [
-    {
-      id: 1,
-      title: "City Secrets",
-      description: "Race across town to uncover hidden murals and landmarks.",
-      cluesCount: 5,
-      status: "Active",
-    },
-    {
-      id: 2,
-      title: "Campus Quest",
-      description: "Solve riddles scattered around campus before the timer ends.",
-      cluesCount: 7,
-      status: "Active",
-    },
-    {
-      id: 3,
-      title: "Office Onboarding Hunt",
-      description: "A playful intro game for new teammates around the office.",
-      cluesCount: 4,
-      status: "Completed",
-    },
-  ]
+// Active hunts for the public Game Arcade (Draft hunts become visible here after activation).
+function fetchAllHunts() {
+  return getAllHunts().filter((h) => h.status === "Active")
 }
 
 export default function GameArcade() {
@@ -73,31 +36,18 @@ export default function GameArcade() {
   const [walletAddress, setWalletAddress] = useState("")
   const [balance, setBalance] = useState("")
 
-  const [hunts, setHunts] = useState<ArcadeHunt[]>([])
+  const [hunts, setHunts] = useState<ReturnType<typeof fetchAllHunts>>([])
   const [isLoadingHunts, setIsLoadingHunts] = useState(true)
 
   useEffect(() => {
     let cancelled = false
-
-    const loadHunts = async () => {
-      try {
-        const all = await fetchAllHunts()
-        if (cancelled) return
-        const active = all.filter((hunt) => hunt.status === "Active")
-        setHunts(active)
-      } catch (error) {
-        console.error("Failed to fetch hunts", error)
-      } finally {
-        if (!cancelled) {
-          setIsLoadingHunts(false)
-        }
-      }
-    }
-
-    loadHunts()
-
-    return () => {
-      cancelled = true
+    try {
+      const active = fetchAllHunts()
+      if (!cancelled) setHunts(active)
+    } catch (error) {
+      console.error("Failed to fetch hunts", error)
+    } finally {
+      if (!cancelled) setIsLoadingHunts(false)
     }
   }, [])
 
@@ -149,8 +99,11 @@ export default function GameArcade() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Button className={`bg-[#0C0C4F] hover:bg-slate-700 text-white px-6 py-3 rounded-lg text-xl font-black`} onClick={handleCreateGame}>
+          <Button className="bg-[#0C0C4F] hover:bg-slate-700 text-white px-6 py-3 rounded-lg text-xl font-black" onClick={handleCreateGame}>
             Create Game
+          </Button>
+          <Button asChild variant="outline" className="border-2 border-[#0C0C4F] text-[#0C0C4F] hover:bg-[#0C0C4F]/10 px-6 py-3 rounded-lg text-xl font-black">
+            <Link href="/dashboard">My Hunts</Link>
           </Button>
           <Button className="bg-[#E87785] hover:bg-[#d4606f] text-white px-6 py-3 rounded-lg text-xl font-black">Play Game</Button>
         </div>

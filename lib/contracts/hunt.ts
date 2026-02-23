@@ -92,3 +92,75 @@ export async function createHunt(
 
   return { txHash: res.hash }
 }
+
+export type ActivateHuntResult = {
+  txHash: string
+}
+
+/**
+ * Calls the smart contract's activate_hunt(hunt_id: u64) to transition a hunt
+ * from Draft to Active. Requires wallet and Soroban RPC.
+ */
+export async function activateHunt(huntId: number): Promise<ActivateHuntResult> {
+  if (typeof window === "undefined") throw new Error("Browser environment required")
+
+  const RPC = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL || "https://rpc.testnet.soroban.stellar.org"
+  const server = new Server(RPC)
+
+  const win = window as Window & { freighter?: unknown; soroban?: unknown; sorobanWallet?: unknown }
+  const wallet = win.freighter ?? win.soroban ?? win.sorobanWallet
+  if (!wallet) {
+    throw new Error(
+      "No Soroban-compatible wallet detected (install Freighter or Soroban Wallet)."
+    )
+  }
+
+  let publicKey: string | undefined
+  const w = wallet as { getPublicKey?: () => Promise<string>; request?: (arg: { method: string }) => Promise<string> }
+  if (w.getPublicKey) {
+    publicKey = await w.getPublicKey()
+  } else if (typeof w.request === "function") {
+    try {
+      publicKey = await w.request({ method: "getPublicKey" })
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!publicKey) {
+    throw new Error("Unable to obtain public key from wallet; ensure you are connected.")
+  }
+
+  const account = await server.getAccount(publicKey)
+  const payload = JSON.stringify({ action: "activate_hunt", hunt_id: huntId })
+  const key = `activate_hunt:${Date.now()}`
+  const op = Operation.manageData({ name: key, value: payload })
+
+  const tx = new TransactionBuilder(account, {
+    fee: "100",
+    networkPassphrase: Networks.TESTNET,
+  })
+    .addOperation(op)
+    .setTimeout(180)
+    .build()
+
+  const signWallet = wallet as { signTransaction?: (xdr: string) => Promise<string>; request?: (arg: { method: string; params?: { tx: string } }) => Promise<string> }
+  let signedXdr: string | undefined
+  if (signWallet.signTransaction) {
+    signedXdr = await signWallet.signTransaction(tx.toXDR())
+  } else if (typeof signWallet.request === "function") {
+    try {
+      signedXdr = await signWallet.request({ method: "signTransaction", params: { tx: tx.toXDR() } })
+    } catch {
+      // continue to error
+    }
+  }
+
+  if (!signedXdr) {
+    throw new Error("Wallet does not support signing via the detected API; please use Freighter or Soroban Wallet.")
+  }
+
+  const res = await server.submitTransaction(signedXdr)
+  if (!res?.hash) throw new Error("Transaction submission failed")
+  return { txHash: res.hash }
+}
