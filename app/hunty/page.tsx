@@ -1,6 +1,6 @@
 "use client"
 
-import { ReactNode, useState } from "react"
+import { ReactNode, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
@@ -16,7 +16,6 @@ import { Header } from "@/components/Header"
 import { CreateGameTabs } from "@/components/CreateGameTabs"
 import { HuntForm } from "@/components/HuntForm"
 import { RewardsPanel } from "@/components/RewardsPanel"
-import { LeaderboardTable } from "@/components/LeaderBoardTable"
 import { GamePreview } from "@/components/GamePreview"
 import { PublishModal } from "@/components/PublishModal"
 import { GameCompleteModal } from "@/components/GameCompleteModal"
@@ -50,8 +49,8 @@ interface LeaderboardEntry {
   icon: ReactNode;
 }
 
-export default function CreateGame() {  
-  const [activeTab, setActiveTab] = useState<"create" | "rewards" | "publish" | "leaderboard">("create")
+export default function CreateGame() {
+  const [activeTab, setActiveTab] = useState<"create" | "rewards" | "publish">("create")
   const [hunts, setHunts] = useState<Hunt[]>([{ id: 1, title: "", description: "", link: "", code: "" }])
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [gameName, setGameName] = useState("Hunty")
@@ -67,6 +66,21 @@ export default function CreateGame() {
   const router = useRouter()
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isPublishing, setIsPublishing] = useState(false)
+  const [huntId, setHuntId] = useState<number>(1) // Default to 1 for preview
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const tab = params.get("tab")
+      const hId = params.get("huntId")
+      if (tab === "publish" || tab === "rewards" || tab === "create") {
+        setActiveTab(tab as any)
+      }
+      if (hId) {
+        setHuntId(parseInt(hId, 10))
+      }
+    }
+  }, [])
 
   const rewardPool = rewards.reduce((sum, r) => sum + r.amount, 0);
 
@@ -102,8 +116,8 @@ export default function CreateGame() {
     { position: 1, name: "JohnDoe", points: 9, icon: <Medal position={1} /> },
     { position: 2, name: "TDH", points: 6, icon: <Medal position={2} /> },
     { position: 3, name: "User904", points: 5, icon: <Medal position={3} /> },
-    { position: 4, name: "0xE394fd1329g3a3wh23fH", points: 4, icon: <Medal  /> },
-    { position: 5, name: "JohnDoe", points: 3, icon: <Medal  /> },
+    { position: 4, name: "0xE394fd1329g3a3wh23fH", points: 4, icon: <Medal /> },
+    { position: 5, name: "JohnDoe", points: 3, icon: <Medal /> },
   ]
 
   const addReward = () => {
@@ -195,8 +209,7 @@ export default function CreateGame() {
             onReplay={() => setShowGameCompleteModal(false)}
             onViewLeaderboard={() => {
               setShowGameCompleteModal(false)
-              setActiveTab("leaderboard")
-              setIsPlaying(false)
+              window.location.href = "/?tab=leaderboard"
             }}
             reward={5.43}
           />
@@ -205,47 +218,6 @@ export default function CreateGame() {
     )
   }
 
-  if (activeTab === "leaderboard" && !isPlaying) {
-    return (
-      <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff]">
-        <Header
-          balance="24.2453"
-        />
-
-        <div className="max-w-[1600px] px-14 pt-10 pb-12 bg-white mx-auto rounded-4xl relative">
-          <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => setActiveTab("create")}
-              className="flex items-center gap-2 text-slate-700 hover:text-slate-900"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Go Home
-            </Button>
-          </div>
-
-          <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-[#0C0C4F] shadow-lg absolute left-1/2 top-1 -translate-x-1/2 -translate-y-1/2">
-            {/* logo */ }
-            <Image src="/icons/logo.png" alt="Logo" width={96} height={96} />
-          </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-br from-[#3737A4] to-[#0C0C4F] text-transparent bg-clip-text mb-6">Leaderboard - Hunty</h1>
-            <div className="flex justify-center gap-4 mb-8">
-              <Button className="bg-gradient-to-b from-[#E3225C] to-[#7B1C4A] text-white px-6 py-2 rounded-xl flex items-center gap-2">
-               <Replay /> Replay
-              </Button>
-              <Button className="bg-gradient-to-b from-[#39A437] to-[#194F0C] text-white px-6 py-2 rounded-xl flex items-center gap-2">
-                <Share />
-                Share Link
-              </Button>
-            </div>
-          </div>
-
-          <LeaderboardTable data={leaderboardData} />
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff] pb-28">
@@ -263,7 +235,7 @@ export default function CreateGame() {
               onClick={() => window.history.back()}
               className="flex items-center gap-2 text-slate-700 hover:text-slate-900 mt-10"
             >
-              <ArrowLeft className="w-4 h-4" />                                     
+              <ArrowLeft className="w-4 h-4" />
               Go Home
             </Button>
           </div>
@@ -271,7 +243,7 @@ export default function CreateGame() {
           {/* Title */}
           <div className="text-center mb-8">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-[#0C0C4F] shadow-lg absolute left-1/2 top-1 -translate-x-1/2 -translate-y-1/2">
-              {/* logo */ }
+              {/* logo */}
               <Image src="/icons/logo.png" alt="Logo" width={96} height={96} />
             </div>
             <h1 className={`text-4xl md:text-5xl font-bold bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] text-transparent bg-clip-text mb-8 ${dynapuff.variable} antialiased `}>Create Scavenge Hunt</h1>
@@ -292,16 +264,16 @@ export default function CreateGame() {
                       onRemove={() => removeHunt(hunt.id)}
                     />
                   ))}
-                 
-                    <div className="inline-block p-[1px] rounded-2xl bg-gradient-to-b from-[#4A4AFF] to-[#0C0C4F]">
-                      <Button
-                        onClick={addHunt} 
-                        className="flex items-center gap-2 bg-white text-[#0C0C4F] font-bold text-xl px-5 py-3 rounded-2xl " 
-                      >
-                        <Plus className="w-6 h-6 text-[#0C0C4F]" />
-                        Add
-                      </Button>
-                    </div>
+
+                  <div className="inline-block p-[1px] rounded-2xl bg-gradient-to-b from-[#4A4AFF] to-[#0C0C4F]">
+                    <Button
+                      onClick={addHunt}
+                      className="flex items-center gap-2 bg-white text-[#0C0C4F] font-bold text-xl px-5 py-3 rounded-2xl "
+                    >
+                      <Plus className="w-6 h-6 text-[#0C0C4F]" />
+                      Add
+                    </Button>
+                  </div>
 
                   <div className="flex justify-end">
                     <Button className="bg-slate-800 hover:bg-slate-700 text-white text-xl font-extrabold
@@ -309,7 +281,7 @@ export default function CreateGame() {
                       Next
                       <ArrowRight className="w-6 h-6" />
                     </Button>
-                  </div>  
+                  </div>
                 </div>
               )}
 
@@ -335,10 +307,10 @@ export default function CreateGame() {
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Give It A Name</label>
                     <div className="flex flex-col gap-1 items-end">
-                      <Input 
-                        value={gameName} 
-                        placeholder="Hunty" 
-                        onChange={(e) => setGameName(e.target.value)} 
+                      <Input
+                        value={gameName}
+                        placeholder="Hunty"
+                        onChange={(e) => setGameName(e.target.value)}
                         className="w-[230px] [&::placeholder]:bg-gradient-to-r [&::placeholder]:from-[#3737A4] [&::placeholder]:to-[#0C0C4F] [&::placeholder]:bg-clip-text [&::placeholder]:text-transparent text-[16px]"
                       />
                       {errors.title && <span className="text-red-500 text-sm">{errors.title[0]}</span>}
@@ -350,11 +322,11 @@ export default function CreateGame() {
                     <div className="flex items-center gap-2">
                       <div className="relative">
                         <div className="p-0.5 bg-gradient-to-b from-[#2D4FEB] to-[#0C0C4F] rounded-lg">
-                          <Input 
+                          <Input
                             type="number"
                             min="0"
                             max="59"
-                            placeholder="00" 
+                            placeholder="00"
                             className="w-full text-center text-lg font-medium bg-white rounded-lg px-3 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 border-0"
                           />
                         </div>
@@ -362,11 +334,11 @@ export default function CreateGame() {
                       <span className="text-2xl bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] font-medium bg-clip-text text-transparent">:</span>
                       <div className="relative">
                         <div className="p-0.5 bg-gradient-to-b from-[#2D4FEB] to-[#0C0C4F] rounded-lg">
-                          <Input 
+                          <Input
                             type="number"
                             min="0"
                             max="59"
-                            placeholder="00" 
+                            placeholder="00"
                             className="w-full text-center text-lg font-medium bg-white rounded-lg px-3 py-2 focus-visible:ring-0 focus-visible:ring-offset-0 border-0"
                           />
                         </div>
@@ -376,14 +348,14 @@ export default function CreateGame() {
 
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Timer</label>
-                    <ToggleButton/>  
+                    <ToggleButton />
                   </div>
 
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">Start Date</label>
                     <div className="flex flex-col gap-1 items-end">
-                      <div className="flex gap-[8px]">  
-                         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-11 w-[140px] text-center"/>
+                      <div className="flex gap-[8px]">
+                        <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-11 w-[140px] text-center" />
                       </div>
                       {errors.startDate && <span className="text-red-500 text-sm">{errors.startDate[0]}</span>}
                     </div>
@@ -392,8 +364,8 @@ export default function CreateGame() {
                   <div className="flex items-center justify-between">
                     <label className="block text-xl font-normal text-[#808080]">End Date</label>
                     <div className="flex flex-col gap-1 items-end">
-                      <div className="flex gap-[8px]">  
-                         <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-11 w-[140px] text-center"/>
+                      <div className="flex gap-[8px]">
+                        <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-11 w-[140px] text-center" />
                       </div>
                       {errors.endDate && <span className="text-red-500 text-sm">{errors.endDate[0]}</span>}
                     </div>
@@ -403,7 +375,7 @@ export default function CreateGame() {
                     <label className="block text-xl font-normal text-[#808080]">Share Link/Generate QR Code</label>
                     <div className="flex gap-2">
                       <Button className="bg-gradient-to-b from-[#3737A4] to-[#0C0C4F]  hover:bg-slate-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
-                        <Share/>
+                        <Share />
                         Share Now
                       </Button>
                       <Button size="icon" variant="outline" className="rounded-lg border-1 border-transparent bg-white bg-clip-padding shadow-sm hover:bg-slate-50 [background:linear-gradient(white,white)_padding-box,linear-gradient(to_bottom,#3737A4,#0C0C4F)_border-box]">
@@ -413,7 +385,7 @@ export default function CreateGame() {
                   </div>
 
                   <div className="flex items-center justify-between mb-16">
-                  <label className="block text-xl font-normal text-[#808080]">Save As Image</label>
+                    <label className="block text-xl font-normal text-[#808080]">Save As Image</label>
                     <div className="flex gap-2">
                       <Button className="bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] hover:bg-slate-700 text-white px-4 py-2 rounded-full flex items-center gap-2">
                         <Download className="w-4 h-4 " />
@@ -435,32 +407,13 @@ export default function CreateGame() {
                       disabled={!isFormValid}
                       className="bg-gradient-to-b from-[#39A437] to-[#194F0C] hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xl px-6 py-3 rounded-lg flex items-center gap-2"
                     >
-                      <span><PlayCircle/></span>
+                      <span><PlayCircle /></span>
                       Publish Game
                     </Button>
                   </div>
                 </div>
               )}
 
-              {activeTab === "leaderboard" && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-semibold">Leaderboard</h3>
-                  <LeaderboardTable data={leaderboardData}/>
-
-                  <div className="flex justify-between">
-                    <Button className="bg-gradient-to-b from-[#4A4AFF] to-[#0C0C4F] text- px-8 py-2 rounded-full flex items-center gap-2">
-                      <ArrowLeft className="w-4 h-4" />
-                      Previous
-                    </Button>
-                    <Button
-                      onClick={handleTest}
-                      className="bg-pink-500 hover:bg-pink-600 text-white px-8 py-2 rounded-full flex items-center gap-2"
-                    >
-                      ⚡ Test
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Right Panel - Live Preview */}
@@ -468,7 +421,7 @@ export default function CreateGame() {
           </div>
         </div>
       </div>
-      
+
 
       <PublishModal
         isOpen={showPublishModal}
