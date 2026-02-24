@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import type { StoredHunt } from "@/lib/huntStore"
 import { ActivateHuntModal } from "@/components/ActivateHuntModal"
+import Link from "next/link"
 
 interface ClueRow {
   id: number
@@ -119,6 +120,7 @@ export function HuntDashboard({ hunts, onActivate, onRefresh, onSaveClues }: Hun
               key={hunt.id}
               className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
             >
+              <Link href={`/hunt/${hunt.id}`}>
               <div className="p-5">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <CardTitle className="line-clamp-2 text-lg">{hunt.title}</CardTitle>
@@ -159,6 +161,7 @@ export function HuntDashboard({ hunts, onActivate, onRefresh, onSaveClues }: Hun
                   </p>
                 )}
               </div>
+              </Link>
             </Card>
           )
         })}

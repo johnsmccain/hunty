@@ -142,3 +142,8 @@ export function saveClueLocally(clue: Omit<Clue, "id">): void {
   )
   writeHunts(hunts)
 }
+
+/** Get a single hunt */
+export const getHunt = (id: string)=> {
+  return readHunts().find((c) => c.id === Number(id))
+}
