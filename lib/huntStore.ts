@@ -3,7 +3,7 @@
  * Persisted in localStorage so activated hunts appear in the arcade after refresh.
  */
 
-export type HuntStatus = "Active" | "Completed" | "Draft"
+export type HuntStatus = "Active" | "Completed" | "Draft" | "Cancelled";
 
 export interface StoredHunt {
   id: number
@@ -141,4 +141,9 @@ export function saveClueLocally(clue: Omit<Clue, "id">): void {
     h.id === clue.huntId ? { ...h, cluesCount: h.cluesCount + 1 } : h
   )
   writeHunts(hunts)
+}
+
+/** Get a single hunt */
+export const getHunt = (id: string) => {
+  return readHunts().find((c) => c.id === Number(id))
 }
