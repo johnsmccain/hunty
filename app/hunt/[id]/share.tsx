@@ -1,16 +1,32 @@
 "use client";
 
+import { HuntControls } from "@/components/HuntControls";
 import { Button } from "@/components/ui/button";
-import { StoredHunt } from "@/lib/huntStore";
+import { StoredHunt, updateHuntStatus } from "@/lib/huntStore";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 interface HuntDetailProps {
   hunt: StoredHunt;
 }
 
 export default function HuntShare({ hunt }: HuntDetailProps) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [connectedPublicKey, setConnectedPublicKey] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const win = window as Window & {
+      freighter?: { getPublicKey?: () => Promise<string> };
+      soroban?: { getPublicKey?: () => Promise<string> };
+      sorobanWallet?: { getPublicKey?: () => Promise<string> };
+    };
+    const wallet = win.freighter ?? win.soroban ?? win.sorobanWallet;
+    if (wallet?.getPublicKey) {
+      wallet.getPublicKey().then(setConnectedPublicKey).catch(() => undefined);
+    }
+  }, []);
 
   const handleShare = async () => {
     const url = `${window.location.origin}/hunt/${hunt.id}`;
@@ -19,10 +35,14 @@ export default function HuntShare({ hunt }: HuntDetailProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const markHuntCancelled = (huntId: number) => {
+    updateHuntStatus(huntId, "Cancelled");
+  };
+
   return (
     <div className="flex flex-col sm:flex-row items-center gap-4">
       <Link
-      
+
         href={`/hunt/${hunt.id}/join`}
         className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-500 active:scale-95 transition-all duration-150 text-white font-semibold text-base px-8 py-4 rounded-2xl shadow-lg shadow-violet-900/40"
       >
@@ -35,7 +55,7 @@ export default function HuntShare({ hunt }: HuntDetailProps) {
       {/* Share button */}
       <Button
         onClick={handleShare}
-        // className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 active:scale-95 transition-all duration-150 text-zinc-300 hover:text-white font-medium text-base px-6 py-4 rounded-2xl"
+      // className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 active:scale-95 transition-all duration-150 text-zinc-300 hover:text-white font-medium text-base px-6 py-4 rounded-2xl"
       >
         {copied ? (
           <>
@@ -53,6 +73,15 @@ export default function HuntShare({ hunt }: HuntDetailProps) {
           </>
         )}
       </Button>
+
+      <HuntControls
+        hunt={hunt}
+        connectedPublicKey={connectedPublicKey}
+        onCancelled={(huntId, txHash) => {
+          markHuntCancelled(huntId)
+          router.push("/hunts")
+        }}
+      />
     </div>
   );
 }
