@@ -1,4 +1,11 @@
 import Server, { TransactionBuilder, Networks, Operation } from "@stellar/stellar-sdk"
+import { getHunt as getStoredHunt, getHuntClues } from "@/lib/huntStore"
+
+export type PlayerProgress = {
+  cluesSolved: number
+  totalClues: number
+  totalPoints: number
+}
 
 export type CreateHuntResult = {
   txHash: string
@@ -293,4 +300,48 @@ export async function get_hunt_leaderboard(huntId: number): Promise<LeaderboardE
   ]
 
   return mockData
+}
+
+/**
+ * Retrieves a player's progress for a given hunt.
+ * Mock implementation backed by localStorage.
+ * In production this reads on-chain state keyed by (hunt_id, player).
+ */
+export async function get_player_progress(
+  huntId: number,
+  _player: string
+): Promise<PlayerProgress> {
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const stored = getStoredHunt(String(huntId))
+  const totalClues = stored?.cluesCount ?? 0
+
+  // Progress is tracked client-side for now; the caller passes solved data.
+  // Return zeroes — PlayGame will merge local solved state.
+  return { cluesSolved: 0, totalClues, totalPoints: 0 }
+}
+
+/**
+ * Submits an answer for a specific clue. Throws AnswerIncorrectError on mismatch.
+ * Mock implementation that checks against localStorage clue data.
+ */
+export async function submitAnswer(
+  huntId: number,
+  clueId: number,
+  answer: string
+): Promise<SubmitAnswerResult> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  const clues = getHuntClues(huntId)
+  const clue = clues.find((c) => c.id === clueId)
+  if (!clue) throw new Error(`Clue ${clueId} not found for hunt ${huntId}`)
+
+  if (answer.trim().toLowerCase() !== clue.answer.trim().toLowerCase()) {
+    throw new AnswerIncorrectError()
+  }
+
+  return {
+    txHash: `mock_tx_${Date.now()}`,
+    event: "ClueCompleted",
+  }
 }
