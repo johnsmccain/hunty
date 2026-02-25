@@ -82,6 +82,7 @@ export function PlayGame({ hunts: huntsProp, gameName, onExit, onGameComplete, g
 
   const handleScoreUpdate = (points: number) => {
     setScore((prev) => prev + points)
+    setSolvedCount((prev) => prev + 1)
   }
 
   const handleClueUnlock = (clueIndex: number) => {
@@ -136,12 +137,12 @@ export function PlayGame({ hunts: huntsProp, gameName, onExit, onGameComplete, g
           </div>
           <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-b to-[#3737A4] from-[#0C0C4F] bg-clip-text text-transparent mb-6">Play {gameName}</h1>
 
-          {/* Score display */}
-          <div className="inline-flex items-center gap-2 bg-gradient-to-b from-[#3737A4] to-[#0C0C4F] text-white px-5 py-2 rounded-full text-sm font-semibold mb-4">
-            <span>Score:</span>
-            <span className="text-lg font-bold">{score}</span>
-            <span className="text-xs opacity-75">pts</span>
-          </div>
+          {/* Player progress panel — auto-updates after each correct answer */}
+          <PlayerProgressPanel
+            cluesSolved={solvedCount}
+            totalClues={hunts.length}
+            totalPoints={score}
+          />
 
           <div className="flex justify-center gap-4 mb-8">
             <Button className="bg-gradient-to-b from-[#E3225C] to-[#7B1C4A] hover:bg-pink-600 text-white px-6 py-2 rounded-full flex items-center gap-2">
