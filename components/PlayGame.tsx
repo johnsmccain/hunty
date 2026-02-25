@@ -3,13 +3,14 @@
 import type React from "react"
 import Image from "next/image"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft} from "lucide-react"
 import { Header } from "@/components/Header"
 import Share from "./icons/Share"
 import Replay from "./icons/Replay"
 import { HuntCards } from "./HuntCards"
+import { get_hunt, get_clue_info } from "@/lib/contracts/hunt"
 
 
 interface Hunt {
@@ -18,6 +19,7 @@ interface Hunt {
   description: string
   link: string
   code: string
+  points?: number
 }
 
 interface PlayGameProps {
@@ -30,12 +32,79 @@ interface PlayGameProps {
   huntId?: number
 }
 
-export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameCompleteModal, huntId }: PlayGameProps) {
+export function PlayGame({ hunts: huntsProp, gameName, onExit, onGameComplete, gameCompleteModal, huntId }: PlayGameProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0)
   const [score, setScore] = useState(0)
+  const [fetchedClues, setFetchedClues] = useState<Hunt[] | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [solvedClues, setSolvedClues] = useState<Set<number>>(new Set())
+
+  useEffect(() => {
+    if (huntId == null) return
+
+    let cancelled = false
+    setLoading(true)
+    setError(null)
+
+    async function fetchClues() {
+      try {
+        const huntInfo = await get_hunt(huntId!)
+        const clues: Hunt[] = []
+        for (let i = 0; i < huntInfo.totalClues; i++) {
+          const clue = await get_clue_info(huntId!, i)
+          clues.push({
+            id: clue.id,
+            title: clue.question,
+            description: `${clue.points} pts`,
+            link: "",
+            code: "",
+            points: clue.points,
+          })
+        }
+        if (!cancelled) {
+          setFetchedClues(clues)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Failed to fetch clues")
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    fetchClues()
+    return () => { cancelled = true }
+  }, [huntId])
+
+  const hunts = fetchedClues ?? huntsProp
 
   const handleScoreUpdate = (points: number) => {
     setScore((prev) => prev + points)
+  }
+
+  const handleClueUnlock = (clueIndex: number) => {
+    const clue = hunts[clueIndex]
+    if (clue) {
+      setSolvedClues((prev) => new Set(prev).add(clue.id))
+    }
+    if (clueIndex < hunts.length - 1) {
+      setCurrentCardIndex(clueIndex + 1)
+    } else {
+      onGameComplete()
+    }
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-tr from-blue-100 bg-purple-100 to-[#f9f9ff] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 text-lg mb-4">{error}</p>
+          <Button variant="ghost" onClick={onExit}>Go Back</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -99,6 +168,8 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
                     preview={true}
                     currentIndex={currentCardIndex}
                     totalHunts={hunts.length}
+                    points={hunts[currentCardIndex - 1].points}
+                    solved={solvedClues.has(hunts[currentCardIndex - 1].id)}
                   />
                 </div>
               </div>
@@ -109,17 +180,13 @@ export function PlayGame({ hunts, gameName, onExit, onGameComplete, gameComplete
               <HuntCards
                 hunts={[hunts[currentCardIndex]]}
                 isActive={true}
+                isLoading={loading}
                 huntId={huntId}
                 onScoreUpdate={handleScoreUpdate}
-                onUnlock={() => {
-                  if (currentCardIndex < hunts.length - 1) {
-                    setCurrentCardIndex(prev => prev + 1);
-                  } else {
-                    onGameComplete();
-                  }
-                }}
+                onUnlock={() => handleClueUnlock(currentCardIndex)}
                 currentIndex={currentCardIndex + 1}
                 totalHunts={hunts.length}
+                points={hunts[currentCardIndex]?.points}
               />
             </div>
 
