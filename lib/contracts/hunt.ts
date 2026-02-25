@@ -1,10 +1,18 @@
 import Server, { TransactionBuilder, Networks, Operation } from "@stellar/stellar-sdk"
 import { getHunt as getStoredHunt, getHuntClues } from "@/lib/huntStore"
 
-export type PlayerProgress = {
-  cluesSolved: number
+export type ClueInfo = {
+  id: number
+  question: string
+  points: number
+}
+
+export type HuntInfo = {
+  id: number
+  title: string
+  description: string
   totalClues: number
-  totalPoints: number
+  status: string
 }
 
 export type CreateHuntResult = {
@@ -303,22 +311,40 @@ export async function get_hunt_leaderboard(huntId: number): Promise<LeaderboardE
 }
 
 /**
- * Retrieves a player's progress for a given hunt.
- * Mock implementation backed by localStorage.
- * In production this reads on-chain state keyed by (hunt_id, player).
+ * Fetches hunt metadata including total clue count.
+ * Mock implementation reading from localStorage via huntStore.
  */
-export async function get_player_progress(
-  huntId: number,
-  _player: string
-): Promise<PlayerProgress> {
-  await new Promise((resolve) => setTimeout(resolve, 200))
+export async function get_hunt(huntId: number): Promise<HuntInfo> {
+  await new Promise((resolve) => setTimeout(resolve, 300))
 
   const stored = getStoredHunt(String(huntId))
-  const totalClues = stored?.cluesCount ?? 0
+  if (!stored) throw new Error(`Hunt ${huntId} not found`)
 
-  // Progress is tracked client-side for now; the caller passes solved data.
-  // Return zeroes — PlayGame will merge local solved state.
-  return { cluesSolved: 0, totalClues, totalPoints: 0 }
+  return {
+    id: stored.id,
+    title: stored.title,
+    description: stored.description,
+    totalClues: stored.cluesCount,
+    status: stored.status,
+  }
+}
+
+/**
+ * Fetches question and points for a specific clue.
+ * Never returns the answer — answers are verified on-chain via submitAnswer.
+ */
+export async function get_clue_info(huntId: number, clueId: number): Promise<ClueInfo> {
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const clues = getHuntClues(huntId)
+  const clue = clues[clueId]
+  if (!clue) throw new Error(`Clue ${clueId} not found for hunt ${huntId}`)
+
+  return {
+    id: clue.id,
+    question: clue.question,
+    points: clue.points,
+  }
 }
 
 /**
