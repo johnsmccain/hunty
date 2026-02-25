@@ -28,6 +28,10 @@ interface HuntCardsProps {
   huntId?: number;
   /** Called with the points awarded after a correct answer. */
   onScoreUpdate?: (points: number) => void;
+  /** Point value for this clue. */
+  points?: number;
+  /** Whether this clue has been solved. */
+  solved?: boolean;
 }
 
 const DEFAULT_POINTS = 10;
@@ -42,6 +46,8 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
   isLoading = false,
   huntId,
   onScoreUpdate,
+  points,
+  solved = false,
 }) => {
   const hunt = hunts && hunts.length > 0 ? hunts[0] : {} as Hunt;
   const [input, setInput] = useState("");
@@ -68,7 +74,7 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
         // ClueCompleted event received
         setSuccess(true);
         setInput("");
-        onScoreUpdate?.(DEFAULT_POINTS);
+        onScoreUpdate?.(points ?? DEFAULT_POINTS);
         setTimeout(() => {
           setSuccess(false);
           onUnlock?.();
@@ -89,7 +95,7 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
         setSuccess(true);
         setError("");
         setInput("");
-        onScoreUpdate?.(DEFAULT_POINTS);
+        onScoreUpdate?.(points ?? DEFAULT_POINTS);
         setTimeout(() => {
           setSuccess(false);
           onUnlock?.();
@@ -126,13 +132,21 @@ export const HuntCards: React.FC<HuntCardsProps> = ({
     );
   }
 
-  const isLocked = !isActive || preview || isPending;
+  const isLocked = !isActive || preview || isPending || solved;
 
   return (
-    <div className={`rounded-2xl shadow-lg w-full max-w-[400px] transition-all duration-300 ${isActive ? "scale-105 border-2 border-blue-400" : preview ? "opacity-70" : "opacity-90"}`}>
+    <div className={`rounded-2xl shadow-lg w-full max-w-[400px] transition-all duration-300 relative ${isActive ? "scale-105 border-2 border-blue-400" : preview ? "opacity-70" : "opacity-90"}`}>
+      {solved && (
+        <div className="absolute inset-0 bg-green-500/10 rounded-2xl z-20 flex items-center justify-center pointer-events-none">
+          <CheckCircle2 className="w-16 h-16 text-green-500 opacity-60" />
+        </div>
+      )}
       <div className="rounded-t-2xl p-6 text-white bg-gradient-to-b from-[#3737A4] to-[#0C0C4F]">
-        <div className="text-right text-[#B3B3E5] text-sm mb-2">
-          {currentIndex}/{totalHunts}
+        <div className="flex justify-between items-center text-sm mb-2">
+          {points != null && (
+            <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs font-semibold">{points} pts</span>
+          )}
+          <span className="text-[#B3B3E5] ml-auto">{currentIndex}/{totalHunts}</span>
         </div>
         <h3 className="text-xl font-bold mb-2">
           {hunt.title || "Untitled Hunt"}

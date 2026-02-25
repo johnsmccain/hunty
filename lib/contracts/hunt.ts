@@ -1,4 +1,19 @@
 import Server, { TransactionBuilder, Networks, Operation } from "@stellar/stellar-sdk"
+import { getHunt as getStoredHunt, getHuntClues } from "@/lib/huntStore"
+
+export type ClueInfo = {
+  id: number
+  question: string
+  points: number
+}
+
+export type HuntInfo = {
+  id: number
+  title: string
+  description: string
+  totalClues: number
+  status: string
+}
 
 export type CreateHuntResult = {
   txHash: string
@@ -293,4 +308,66 @@ export async function get_hunt_leaderboard(huntId: number): Promise<LeaderboardE
   ]
 
   return mockData
+}
+
+/**
+ * Fetches hunt metadata including total clue count.
+ * Mock implementation reading from localStorage via huntStore.
+ */
+export async function get_hunt(huntId: number): Promise<HuntInfo> {
+  await new Promise((resolve) => setTimeout(resolve, 300))
+
+  const stored = getStoredHunt(String(huntId))
+  if (!stored) throw new Error(`Hunt ${huntId} not found`)
+
+  return {
+    id: stored.id,
+    title: stored.title,
+    description: stored.description,
+    totalClues: stored.cluesCount,
+    status: stored.status,
+  }
+}
+
+/**
+ * Fetches question and points for a specific clue.
+ * Never returns the answer — answers are verified on-chain via submitAnswer.
+ */
+export async function get_clue_info(huntId: number, clueId: number): Promise<ClueInfo> {
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const clues = getHuntClues(huntId)
+  const clue = clues[clueId]
+  if (!clue) throw new Error(`Clue ${clueId} not found for hunt ${huntId}`)
+
+  return {
+    id: clue.id,
+    question: clue.question,
+    points: clue.points,
+  }
+}
+
+/**
+ * Submits an answer for a specific clue. Throws AnswerIncorrectError on mismatch.
+ * Mock implementation that checks against localStorage clue data.
+ */
+export async function submitAnswer(
+  huntId: number,
+  clueId: number,
+  answer: string
+): Promise<SubmitAnswerResult> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  const clues = getHuntClues(huntId)
+  const clue = clues.find((c) => c.id === clueId)
+  if (!clue) throw new Error(`Clue ${clueId} not found for hunt ${huntId}`)
+
+  if (answer.trim().toLowerCase() !== clue.answer.trim().toLowerCase()) {
+    throw new AnswerIncorrectError()
+  }
+
+  return {
+    txHash: `mock_tx_${Date.now()}`,
+    event: "ClueCompleted",
+  }
 }
