@@ -1,8 +1,10 @@
 import { Header } from "@/components/Header";
 import { getHunt, HuntStatus } from "@/lib/huntStore";
+import { formatTimestamp } from "@/lib/dateUtils";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import HuntDetailClient from "./share";
+import { HuntCountdown } from "./HuntCountdown";
 
 export async function generateMetadata({
   params,
@@ -103,6 +105,21 @@ const page = async ({ params }: PageProps) => {
             <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Status</p>
             <p className="text-white font-semibold text-lg capitalize">{huntDetails.status}</p>
           </div>
+          {huntDetails.startTime && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Starts</p>
+              <p className="text-white font-semibold text-sm">{formatTimestamp(huntDetails.startTime)}</p>
+            </div>
+          )}
+          {huntDetails.endTime && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+              <p className="text-xs text-zinc-500 uppercase tracking-widest mb-1">Ends</p>
+              <p className="text-white font-semibold text-sm">{formatTimestamp(huntDetails.endTime)}</p>
+            </div>
+          )}
+          {huntDetails.status === "Active" && huntDetails.endTime && (
+            <HuntCountdown endTime={huntDetails.endTime} />
+          )}
         </div>
 
         <HuntDetailClient hunt={huntDetails}  />
